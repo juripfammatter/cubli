@@ -1,0 +1,15 @@
+&i2c0 {
+	bmi270@69 {
+		compatible = "bosch,bmi270";
+		reg = <0x69>;
+		status = "okay";
+	};
+};
+
+&pinctrl {
+    i2c0_default: i2c0_default {
+        group1 {
+            pinmux = <I2C0_SDA_GPIO12>, <I2C0_SCL_GPIO11>;
+        };
+    };
+};

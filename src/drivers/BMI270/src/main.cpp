@@ -8,80 +8,115 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
+#include <array>
+
+const int N = 100;
+
+void dump_measurements(std::array<std::array<float, 7>, N> &measurements);
 
 int main(void)
 {
-       const struct device *const dev = DEVICE_DT_GET_ONE(bosch_bmi270);
-       struct sensor_value acc[3], gyr[3];
-       struct sensor_value full_scale, sampling_freq, oversampling;
+	const struct device *const dev = DEVICE_DT_GET_ONE(bosch_bmi270);
+	struct sensor_value acc[3], gyr[3];
+	struct sensor_value full_scale, sampling_freq, oversampling;
 
-       if (!device_is_ready(dev)) {
+	if (!device_is_ready(dev)) {
 	       printf("Device %s is not ready\n", dev->name);
 	       return 0;
-       }
+	}
 
-       printf("Device %p name is %s\n", dev, dev->name);
+	printf("Device %p name is %s\n", dev, dev->name);
 
-       /* Setting scale in G, due to loss of precision if the SI unit m/s^2
+	/* Setting scale in G, due to loss of precision if the SI unit m/s^2
 	* is used
 	*/
-       full_scale.val1 = 2;            /* G */
-       full_scale.val2 = 0;
-       sampling_freq.val1 = 100;       /* Hz. Performance mode */
-       sampling_freq.val2 = 0;
-       oversampling.val1 = 1;          /* Normal mode */
-       oversampling.val2 = 0;
+	full_scale.val1 = 2;            /* G */
+	full_scale.val2 = 0;
+	sampling_freq.val1 = 100;       /* Hz. Performance mode */
+	sampling_freq.val2 = 0;
+	oversampling.val1 = 1;          /* Normal mode */
+	oversampling.val2 = 0;
 
-       sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FULL_SCALE,
+	sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FULL_SCALE,
 		       &full_scale);
-       sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_OVERSAMPLING,
+	sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_OVERSAMPLING,
 		       &oversampling);
-       /* Set sampling frequency last as this also sets the appropriate
+	/* Set sampling frequency last as this also sets the appropriate
 	* power mode. If already sampling, change to 0.0Hz before changing
 	* other attributes
 	*/
-       sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ,
+	sensor_attr_set(dev, SENSOR_CHAN_ACCEL_XYZ,
 		       SENSOR_ATTR_SAMPLING_FREQUENCY,
 		       &sampling_freq);
 
 
-       /* Setting scale in degrees/s to match the sensor scale */
-       full_scale.val1 = 500;          /* dps */
-       full_scale.val2 = 0;
-       sampling_freq.val1 = 100;       /* Hz. Performance mode */
-       sampling_freq.val2 = 0;
-       oversampling.val1 = 1;          /* Normal mode */
-       oversampling.val2 = 0;
+	/* Setting scale in degrees/s to match the sensor scale */
+	full_scale.val1 = 500;          /* dps */
+	full_scale.val2 = 0;
+	sampling_freq.val1 = 100;       /* Hz. Performance mode */
+	sampling_freq.val2 = 0;
+	oversampling.val1 = 1;          /* Normal mode */
+	oversampling.val2 = 0;
 
-       sensor_attr_set(dev, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_FULL_SCALE,
+	sensor_attr_set(dev, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_FULL_SCALE,
 		       &full_scale);
-       sensor_attr_set(dev, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_OVERSAMPLING,
+	sensor_attr_set(dev, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_OVERSAMPLING,
 		       &oversampling);
-       /* Set sampling frequency last as this also sets the appropriate
+	/* Set sampling frequency last as this also sets the appropriate
 	* power mode. If already sampling, change sampling frequency to
 	* 0.0Hz before changing other attributes
 	*/
-       sensor_attr_set(dev, SENSOR_CHAN_GYRO_XYZ,
+	sensor_attr_set(dev, SENSOR_CHAN_GYRO_XYZ,
 		       SENSOR_ATTR_SAMPLING_FREQUENCY,
 		       &sampling_freq);
 
-       while (1) {
-	       /* 10ms period, 100Hz Sampling frequency */
-	       k_sleep(K_MSEC(10));
 
-	       sensor_sample_fetch(dev);
+	printk("starting measurements\n");
 
-	       sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, acc);
-	       sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, gyr);
+	std::array<std::array<float, 7>, N> measurements{{{0.0}}};
+	for(auto &m : measurements){
+		k_sleep(K_MSEC(10));
 
-	       printf("AX: %d.%06d; AY: %d.%06d; AZ: %d.%06d; "
-		      "GX: %d.%06d; GY: %d.%06d; GZ: %d.%06d;\n",
-		      acc[0].val1, acc[0].val2,
-		      acc[1].val1, acc[1].val2,
-		      acc[2].val1, acc[2].val2,
-		      gyr[0].val1, gyr[0].val2,
-		      gyr[1].val1, gyr[1].val2,
-		      gyr[2].val1, gyr[2].val2);
+		sensor_sample_fetch(dev);
+
+		sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, acc);
+		sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, gyr);
+
+		//wall time
+		m[0] = float(k_uptime_get()) / 1000.0f; // convert to seconds
+		m[1] = float(acc[0].val1) + float(acc[0].val2) / 1000000.0f;
+		m[2] = float(acc[1].val1) + float(acc[1].val2) / 1000000.0f;
+		m[3] = float(acc[2].val1) + float(acc[2].val2) / 1000000.0f;
+		m[4] = float(gyr[0].val1) + float(gyr[0].val2) / 1000000.0f;
+		m[5] = float(gyr[1].val1) + float(gyr[1].val2) / 1000000.0f;
+		m[6] = float(gyr[2].val1) + float(gyr[2].val2) / 1000000.0f;
+	}
+	dump_measurements(measurements);
+
+//       while (1) {
+//	       /* 10ms period, 100Hz Sampling frequency */
+//	       k_sleep(K_MSEC(10));
+//
+//	       sensor_sample_fetch(dev);
+//
+//	       sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, acc);
+//	       sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, gyr);
+//
+//	       printf("AX: %d.%06d; AY: %d.%06d; AZ: %d.%06d; "
+//		      "GX: %d.%06d; GY: %d.%06d; GZ: %d.%06d;\n",
+//		      acc[0].val1, acc[0].val2,
+//		      acc[1].val1, acc[1].val2,
+//		      acc[2].val1, acc[2].val2,
+//		      gyr[0].val1, gyr[0].val2,
+//		      gyr[1].val1, gyr[1].val2,
+//		      gyr[2].val1, gyr[2].val2);
+//       }
+	return 0;
+}
+
+void dump_measurements(std::array<std::array<float, 7>, N> &measurements){
+	       for (auto &m : measurements) {
+	       printk("%0.6f: %0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f\n",
+			      m[0], m[1], m[2], m[3], m[4], m[5], m[6]);
        }
-       return 0;
 }

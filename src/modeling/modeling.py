@@ -1,7 +1,10 @@
+import os
+
 import control
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
+import json
 
 from src.modeling.models.nonlinear_model import NonlinearModel
 
@@ -20,6 +23,10 @@ def main():
         "I_wheel_center": 64.171,  # kg*mm^2
         "K_tau": 0.065 / 0.927,  # Unit? Nm/A : Motor constant TODO
     }
+    json_path = os.path.join(os.getcwd(), "params.json")
+    with open(json_path, "w") as f:
+        json.dump(params, f, indent=4)
+
     ts = 0.1  # Sampling time for discretization
     T_sim = 200  # Simulation time in seconds
 

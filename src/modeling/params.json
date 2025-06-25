@@ -1,0 +1,13 @@
+{
+    "m_total": 0.325,
+    "m_wheel": 0.0832,
+    "m_body": 0.0753,
+    "m_controller": 0.0783,
+    "m_cable": 0.0024,
+    "m_screws": 0.0044,
+    "l": 60.781,
+    "I_body_pivot": 731.12,
+    "I_wheel_pivot": 372.11,
+    "I_wheel_center": 64.171,
+    "K_tau": 0.07011866235167206
+}

@@ -7,6 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from src.visualization.utils.convert_to_json import convert_to_json
+from src.visualization.utils.plot_utils import plot_measurements
 
 
 def main():
@@ -31,39 +32,7 @@ def main():
         df = pd.read_json(file)
         df["imu"] = df["imu"].apply(lambda x: np.array(x))
 
-    sns.set_theme(style="darkgrid")
-    fig, axs = plt.subplots(6, 1, figsize=(8, 12), sharex=True)
-    labels = ["$a_x$", "$a_y$", "$a_z$", "$\\omega_x$", "$\\omega_y$", "$\\omega_z$"]
-    units = [
-        "$\\frac{m}{s^2}$",
-        "$\\frac{m}{s^2}$",
-        "$\\frac{m}{s^2}$",
-        "$\\frac{rad}{s}$",
-        "$\\frac{rad}{s}$",
-        "$\\frac{rad}{s}$",
-    ]
-    [
-        sns.lineplot(
-            data=df[:][5:],
-            x="time",
-            y=df["imu"].apply(lambda x: x[i]),
-            label=labels[i],
-            color="blue",
-            linewidth=0.5,
-            ax=axs[i],
-            alpha=0.5,
-        )
-        for i in range(6)
-    ]
-
-    [
-        ax.set(xlabel="time [s]", ylabel=labels[i] + f" [{units[i]}]")
-        for i, ax in enumerate(axs)
-    ]
-
-    [ax.legend(facecolor="white", loc="upper right") for ax in axs.flatten()]
-    plt.tight_layout()
-    plt.show()
+    plot_measurements(df)
 
 
 if __name__ == "__main__":

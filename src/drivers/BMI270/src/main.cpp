@@ -11,7 +11,7 @@
 #include <vector>
 #include <array>
 
-const int N = 200;
+const int N = 1000;
 
 void dump_measurements(std::vector<std::array<float, 7>> &measurements);
 
@@ -118,8 +118,9 @@ int main(void)
 
 void dump_measurements(std::vector<std::array<float, 7>> &measurements){
 	       for (auto &m : measurements) {
-	       printk("{time: [%0.6f], imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f]}\n",
-			      m[0], m[1], m[2], m[3], m[4], m[5], m[6]);
+	       printk("time: [%0.6f], imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f]\n",
+			      double(m[0]), double(m[1]), double(m[2]), double(m[3]),
+			      double(m[4]), double(m[5]), double(m[6]));
        }
        k_sleep(K_SECONDS(2));
 }

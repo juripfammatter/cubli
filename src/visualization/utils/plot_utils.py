@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+rad2deg = lambda x: x * 180 / 3.141592653589793
+
 
 def plot_states(states: pd.DataFrame, measurements: pd.DataFrame = None):
     sns.set_theme(style="darkgrid")
@@ -10,7 +12,7 @@ def plot_states(states: pd.DataFrame, measurements: pd.DataFrame = None):
     sns.lineplot(
         data=states,
         x="time",
-        y="x_hat_1",
+        y=states["x_hat_1"].apply(rad2deg),
         label="$\\widehat{x}_1 = \\theta_c$",
         linewidth=2.0,
         ax=axs[0],
@@ -63,7 +65,7 @@ def plot_states(states: pd.DataFrame, measurements: pd.DataFrame = None):
 
     labels = ["$\\theta_c$", "$\\dot{\\theta}_c$", "$\\dot{\\theta}_w$"]
     units = [
-        "$\\left[rad\\right]$",
+        "$\\left[deg\\right]$",
         "$\\left[\\frac{rad}{s}\\right]$",
         "$\\left[\\frac{rad}{s}\\right]$",
     ]

@@ -28,7 +28,7 @@ class NonlinearModel(Model):
         self.model = sp.Matrix(
             [
                 [x_2],
-                [1 / I_c * (K * u - m_total * self.params["l"] * 9.81 * sp.sin(x_1))],
+                [1 / I_c * (K * u + m_total * self.params["l"] * 9.81 * sp.sin(x_1))],
                 [x_4],
                 [
                     1
@@ -48,8 +48,8 @@ class NonlinearModel(Model):
         """Linearize the nonlinear model."""
         A = self.model.jacobian(sp.symbols("x_1 x_2 x_3 x_4"))
         B = self.model.jacobian([sp.symbols("u")])
-        C = sp.eye(4)
-        D = sp.zeros(4, 1)
+        C = sp.Matrix([[1, 0, 0, 0], [0, 0, 1, 0]])
+        D = sp.zeros(2, 1)
 
         params = self.params.copy()
         params.setdefault(

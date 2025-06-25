@@ -55,6 +55,9 @@ def main():
     R = np.array([[0.01]])  # Input cost matrix
     K, S, E = control.dlqr(linear_model.ss_discrete, Q, R)
 
+    print(f"Closed loop eigenvalues:\n{E}")
+    print(f"absoulte values of closed loop eigenvalues:\n{np.abs(E)}")
+
     closed_loop_ss = control.ss(
         linear_model.ss_discrete.A - linear_model.ss_discrete.B @ K,
         linear_model.ss_discrete.B,
@@ -74,7 +77,7 @@ def main():
     fig, axs = plt.subplots(4, 2, figsize=(10, 8))
     [
         axs[i, 0].plot(
-            step_response.time, step_response.outputs[i, 0], label=f"$y_{ {i+1} }$"
+            step_response.time, step_response.states[i, 0], label=f"$x_{ {i+1} }$"
         )
         for i in range(4)
     ]
@@ -82,7 +85,7 @@ def main():
         axs[i, 1].plot(
             closed_loop_step_response.time,
             x[i],
-            label=f"$y_{ {i + 1} }$",
+            label=f"$x_{ {i + 1} }$",
         )
         for i in range(4)
     ]

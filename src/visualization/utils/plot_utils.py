@@ -60,6 +60,44 @@ def plot_states(states: pd.DataFrame, measurements: pd.DataFrame = None):
             alpha=0.5,
         )
 
+        if measurements["state"] is not None:
+            sns.lineplot(
+                data=measurements,
+                x="time",
+                y=measurements["state"].apply(lambda x: rad2deg(x[0])),
+                label="$\\theta_c^{edge}$",
+                color="green",
+                marker="o",
+                linestyle="--",
+                linewidth=1,
+                ax=axs[0],
+                alpha=0.5,
+            )
+            sns.lineplot(
+                data=measurements,
+                x="time",
+                y=measurements["state"].apply(lambda x: x[1]),
+                label="$\\dot{\\theta}_c^{edge}$",
+                color="green",
+                marker="o",
+                linestyle="--",
+                linewidth=1,
+                ax=axs[1],
+                alpha=0.5,
+            )
+            sns.lineplot(
+                data=measurements,
+                x="time",
+                y=measurements["state"].apply(lambda x: x[2]),
+                label="$\\dot{\\theta}_w^{edge}$",
+                color="green",
+                marker="o",
+                linestyle="--",
+                linewidth=1,
+                ax=axs[2],
+                alpha=0.5,
+            )
+
     [ax.legend(facecolor="white", loc="upper right") for ax in axs.flatten()]
     axs[0].set_title("Estimated States")
 

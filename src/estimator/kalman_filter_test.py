@@ -48,7 +48,7 @@ def main():
     plot_measurements(measurements_df)
 
     # setup Kalman filter
-    divider = 10
+    divider = 1
     ts = 0.01 * divider  # Sampling time for discretization
 
     nonlinear_model = NonlinearModel(params)

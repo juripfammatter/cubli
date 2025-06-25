@@ -10,10 +10,16 @@
 #include <zephyr/drivers/sensor.h>
 #include <vector>
 #include <array>
+#include "../lib/eigen/Eigen/Core"
+
+using Eigen::MatrixXf;
+using Eigen::Matrix3f;
+using Eigen::Vector3f;
+using Eigen::Vector2f;
 
 const int N = 1000;
 
-void dump_measurements(std::vector<std::array<float, 7>> &measurements);
+void dump_measurements(std::vector<std::array<float, 7>> &measurements, std::vector<Vector3f> &state_estimates);
 
 int main(void)
 {
@@ -74,9 +80,29 @@ int main(void)
 
 	printk("starting measurements\n");
 
+	MatrixXf K(3,2);
+	K << 	0.7064475, -0.7064507,
+		0.9994832, 0.0004139,
+		0.0004168,  0.9994862;
+	Matrix3f A;
+	A << 	1.00000586,  0.0100000293,  0.0,
+		0.00117190537,  1.00000586,  0.0,
+		-0.00117190537, -0.0000058595268, 1.0;
+
+	MatrixXf C(2,3);
+	C << 	0.000585952684,  1.00000293,  0.0,
+		-0.000585952684, -0.00000292976342,  1.0;
+	Matrix3f A_cl;
+	A_cl = (A-K*C);
+
 	// vector is allocated on heap
 	std::vector<std::array<float, 7>> measurements(N, {{0.0}});
-	for(auto &m : measurements){
+	std::vector<Vector3f> x_hat(N, Vector3f::Zero());
+	Vector2f z_bar;
+
+	x_hat[0] << 0.0, 0.0, 0.0; // initial state
+	for (int i = 0; i < N; ++i) {
+
 		k_sleep(K_MSEC(10));
 
 		sensor_sample_fetch(dev);
@@ -85,42 +111,38 @@ int main(void)
 		sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, gyr);
 
 		//wall time
-		m[0] = float(k_uptime_get()) / 1000.0f; // convert to seconds
-		m[1] = float(acc[0].val1) + float(acc[0].val2) / 1000000.0f;
-		m[2] = float(acc[1].val1) + float(acc[1].val2) / 1000000.0f;
-		m[3] = float(acc[2].val1) + float(acc[2].val2) / 1000000.0f;
-		m[4] = float(gyr[0].val1) + float(gyr[0].val2) / 1000000.0f;
-		m[5] = float(gyr[1].val1) + float(gyr[1].val2) / 1000000.0f;
-		m[6] = float(gyr[2].val1) + float(gyr[2].val2) / 1000000.0f;
-	}
-	dump_measurements(measurements);
+		measurements[i][0] = float(k_uptime_get()) / 1000.0f; // convert to seconds
+		measurements[i][1] = float(acc[0].val1) + float(acc[0].val2) / 1000000.0f;
+		measurements[i][2] = float(acc[1].val1) + float(acc[1].val2) / 1000000.0f;
+		measurements[i][3] = float(acc[2].val1) + float(acc[2].val2) / 1000000.0f;
+		measurements[i][4] = float(gyr[0].val1) + float(gyr[0].val2) / 1000000.0f;
+		measurements[i][5] = float(gyr[1].val1) + float(gyr[1].val2) / 1000000.0f;
+		measurements[i][6] = float(gyr[2].val1) + float(gyr[2].val2) / 1000000.0f;
 
-//       while (1) {
-//	       /* 10ms period, 100Hz Sampling frequency */
-//	       k_sleep(K_MSEC(10));
-//
-//	       sensor_sample_fetch(dev);
-//
-//	       sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, acc);
-//	       sensor_channel_get(dev, SENSOR_CHAN_GYRO_XYZ, gyr);
-//
-//	       printf("AX: %d.%06d; AY: %d.%06d; AZ: %d.%06d; "
-//		      "GX: %d.%06d; GY: %d.%06d; GZ: %d.%06d;\n",
-//		      acc[0].val1, acc[0].val2,
-//		      acc[1].val1, acc[1].val2,
-//		      acc[2].val1, acc[2].val2,
-//		      gyr[0].val1, gyr[0].val2,
-//		      gyr[1].val1, gyr[1].val2,
-//		      gyr[2].val1, gyr[2].val2);
-//       }
+		if (i > 0) {
+			// simple state update
+			z_bar << measurements[i][6], 0.0; // acc x, y
+			x_hat[i] = A_cl* x_hat[i-1] + K * z_bar;
+		}
+	}
+	dump_measurements(measurements, x_hat);
+
 	return 0;
 }
 
-void dump_measurements(std::vector<std::array<float, 7>> &measurements){
-	       for (auto &m : measurements) {
-	       printk("time: [%0.6f], imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f]\n",
-			      double(m[0]), double(m[1]), double(m[2]), double(m[3]),
-			      double(m[4]), double(m[5]), double(m[6]));
+void dump_measurements(std::vector<std::array<float, 7>> &measurements, std::vector<Vector3f> &state_estimates){
+	for (int i = 0; i < N; ++i){
+	       Vector3f state = state_estimates[i];
+	       std::array m = measurements[i];
+	       // print the measurements and state estimates
+	       printk("time: [%0.6f], "
+			      "imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f],"
+			      "state: [%0.6f, %0.6f, %0.6f]\n",
+			      double(m[0]),
+			      double(m[1]), double(m[2]), double(m[3]),
+			      double(m[4]), double(m[5]), double(m[6]),
+			      double(state[0]), double(state[1]), double(state[2]));
        }
+
        k_sleep(K_SECONDS(2));
 }

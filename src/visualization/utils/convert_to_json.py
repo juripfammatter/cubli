@@ -19,10 +19,12 @@ def convert_to_json(file_path: str) -> str:
     for line in data:
         time_match = re.search(r"time: \[([0-9\.\-eE]+)\]", line)
         imu_match = re.search(r"imu: \[([0-9\.\,\-\seE]+)\]", line)
-        if time_match and imu_match:
+        state_match = re.search(r"state: \[([0-9\.\,\-\seE]+)\]", line)
+        if time_match and imu_match and state_match:
             time_val = float(time_match.group(1))
             imu_vals = [float(x) for x in imu_match.group(1).split(",")]
-            result.append({"time": time_val, "imu": imu_vals})
+            state_vals = [float(x) for x in state_match.group(1).split(",")]
+            result.append({"time": time_val, "imu": imu_vals, "state": state_vals})
 
     # save as json
     json_file_path = file_path.replace(".txt", ".json")

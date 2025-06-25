@@ -29,7 +29,6 @@ class NonlinearModel(Model):
             [
                 [x_2],
                 [1 / I_c * (K * u + m_total * self.params["l"] * 9.81 * sp.sin(x_1))],
-                [x_4],
                 [
                     1
                     / I_c
@@ -46,18 +45,16 @@ class NonlinearModel(Model):
 
     def linearize(self, x_s: np.ndarray, u_s: np.ndarray) -> LinearModel:
         """Linearize the nonlinear model."""
-        A = self.model.jacobian(sp.symbols("x_1 x_2 x_3 x_4"))
+        A = self.model.jacobian(sp.symbols("x_1 x_2 x_3"))
         B = self.model.jacobian([sp.symbols("u")])
-        C = sp.Matrix([[1, 0, 0, 0], [0, 0, 1, 0]])
+        C = sp.Matrix([[0, 1, 0], [0, 0, 1]])
         D = sp.zeros(2, 1)
 
         params = self.params.copy()
         params.setdefault(
             "A",
             np.array(
-                A.evalf(
-                    subs={"x_1": x_s[0], "x_2": x_s[1], "x_3": x_s[2], "x_4": x_s[3]}
-                ),
+                A.evalf(subs={"x_1": x_s[0], "x_2": x_s[1], "x_3": x_s[2]}),
                 dtype=float,
             ),
         )

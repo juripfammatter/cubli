@@ -31,9 +31,7 @@ def main():
     T_sim = 200  # Simulation time in seconds
 
     nonlinear_model = NonlinearModel(params)
-    linear_model = nonlinear_model.linearize(
-        x_s=np.array([0, 0, 0, 0]), u_s=np.array([0])
-    )
+    linear_model = nonlinear_model.linearize(x_s=np.array([0, 0, 0]), u_s=np.array([0]))
     linear_model.discretize(ts=ts)
 
     print(f"Eigenvalues of A: {np.linalg.eigvals(linear_model.ss.A)}")
@@ -51,12 +49,12 @@ def main():
         linear_model.ss_discrete, T=np.arange(0, T_sim, ts)
     )
 
-    Q = np.diag([1e4, 100, 0.01, 0.01])  # State cost matrix
+    Q = np.diag([1e4, 100, 0.01])  # State cost matrix
     R = np.array([[0.01]])  # Input cost matrix
     K, S, E = control.dlqr(linear_model.ss_discrete, Q, R)
 
     print(f"Closed loop eigenvalues:\n{E}")
-    print(f"absoulte values of closed loop eigenvalues:\n{np.abs(E)}")
+    print(f"Absolute values of closed loop eigenvalues:\n{np.abs(E)}")
 
     closed_loop_ss = control.ss(
         linear_model.ss_discrete.A - linear_model.ss_discrete.B @ K,
@@ -74,12 +72,12 @@ def main():
         x[:, t], _ = linear_model.step(x[:, t - 1], u, dt=ts)
 
     sns.set_theme(style="darkgrid")
-    fig, axs = plt.subplots(4, 2, figsize=(10, 8))
+    fig, axs = plt.subplots(3, 2, figsize=(10, 8))
     [
         axs[i, 0].plot(
             step_response.time, step_response.states[i, 0], label=f"$x_{ {i+1} }$"
         )
-        for i in range(4)
+        for i in range(3)
     ]
     [
         axs[i, 1].plot(
@@ -87,7 +85,7 @@ def main():
             x[i],
             label=f"$x_{ {i + 1} }$",
         )
-        for i in range(4)
+        for i in range(3)
     ]
     [ax.legend(facecolor="white") for ax in axs.flatten()]
     axs[0, 0].set_title("Step Response of Linearized Model")

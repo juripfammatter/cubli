@@ -57,8 +57,8 @@ def main():
     )
     linear_model.discretize(ts=ts)
 
-    Q_lqe = np.diag([1, 1, 1, 1])  # TODO replace with actual covariance matrix
-    R_lqe = np.diag([1, 1])
+    Q_lqe = np.diag([1, 1, 1])  # TODO replace with actual covariance matrix
+    R_lqe = 1e-4 * np.diag([1, 1])
 
     A, H = linear_model.ss_discrete.A, linear_model.ss_discrete.C
     P, _, _ = control.dare(A.T, H.T, Q_lqe, R_lqe)

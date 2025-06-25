@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 from src.modeling.models.nonlinear_model import NonlinearModel
 from src.visualization.utils.convert_to_json import convert_to_json
-from src.visualization.utils.plot_utils import plot_measurements
+from src.visualization.utils.plot_utils import plot_measurements, plot_states
 
 
 def main():
@@ -37,7 +37,7 @@ def main():
     with open(measurements, "r") as file:
         measurements_df = pd.read_json(file)
         measurements_df["imu"] = measurements_df["imu"].apply(lambda x: np.array(x))
-
+        measurements_df["motor_vel"] = np.zeros_like(measurements_df["imu"])
     # load parameters
     if not os.path.exists(params_path):
         raise FileNotFoundError(f"Parameters file not found: {params_path}")
@@ -48,13 +48,11 @@ def main():
     plot_measurements(measurements_df)
 
     # setup Kalman filter
-    ts = 0.1  # Sampling time for discretization
-    T_sim = 200  # Simulation time in seconds
+    divider = 10
+    ts = 0.01 * divider  # Sampling time for discretization
 
     nonlinear_model = NonlinearModel(params)
-    linear_model = nonlinear_model.linearize(
-        x_s=np.array([0, 0, 0, 0]), u_s=np.array([0])
-    )
+    linear_model = nonlinear_model.linearize(x_s=np.array([0, 0, 0]), u_s=np.array([0]))
     linear_model.discretize(ts=ts)
 
     Q_lqe = np.diag([1, 1, 1])  # TODO replace with actual covariance matrix
@@ -65,6 +63,30 @@ def main():
     K_lqe = P @ H.T @ np.linalg.inv(H @ P @ H.T + R_lqe)
 
     print(f"Kalman gain: {K_lqe}")
+
+    n_sim = measurements_df.shape[0]
+    n_est = int(n_sim / divider)
+    x_hat = np.zeros((linear_model.n, n_est + 1))  # Initial state
+    time = [measurements_df["time"][0]]
+
+    for i in range(1, n_est):
+        time.append(measurements_df["time"][i * divider])
+        x_hat[:, i] = linear_model.ss_discrete.A @ x_hat[:, i - 1] + K_lqe @ (
+            np.hstack([measurements_df["imu"][i * divider][5], 0])
+            - linear_model.ss_discrete.C @ x_hat[:, i - 1]
+        )
+
+    print("")
+    estimated_states = pd.DataFrame(
+        data={
+            "time": time,
+            "x_hat_1": x_hat[0, :-1],
+            "x_hat_2": x_hat[1, :-1],
+            "x_hat_3": x_hat[2, :-1],
+        }
+    )
+
+    plot_states(estimated_states, measurements_df)
 
 
 if __name__ == "__main__":

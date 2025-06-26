@@ -1,0 +1,11 @@
+description: Roller485 I2C device for M5Stack
+
+compatible: "m5stack,roller485"
+
+include: i2c-device.yaml
+
+properties:
+  irq-gpios:
+    type: phandle-array
+    description: |
+      The INT1 and (optional) INT2 signal connections.

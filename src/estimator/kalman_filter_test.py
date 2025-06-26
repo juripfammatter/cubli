@@ -56,13 +56,16 @@ def main():
     linear_model.discretize(ts=ts)
 
     Q_lqe = np.diag([1, 1, 1])  # TODO replace with actual covariance matrix
-    R_lqe = 1e-4 * np.diag([1, 1])
+    R_lqe = 7.14025e-7 * np.diag([1, 1])
 
     A, H = linear_model.ss_discrete.A, linear_model.ss_discrete.C
     P, _, _ = control.dare(A.T, H.T, Q_lqe, R_lqe)
     K_lqe = P @ H.T @ np.linalg.inv(H @ P @ H.T + R_lqe)
 
-    print(f"Kalman gain: {K_lqe}")
+    with np.printoptions(precision=8, suppress=True):
+        print(f"Kalman gain: {K_lqe.flatten()}")
+        print(f"Discrete A matrix:\n{linear_model.ss_discrete.A.flatten()}")
+        print(f"Discrete C matrix:\n{linear_model.ss_discrete.C.flatten()}")
 
     n_sim = measurements_df.shape[0]
     n_est = int(n_sim / divider)

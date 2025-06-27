@@ -13,6 +13,11 @@ static inline void intToFourBytesCurrent(int32_t value, int8_t *bytes)
 	intToFourBytes(value * 100, bytes);
 }
 
+static inline void intToFourBytesSpeed(int32_t value, int8_t *bytes)
+{
+	intToFourBytes(value * 100, bytes);
+}
+
 static inline int32_t fourBytesToInt(const int8_t *bytes)
 {
 	return *reinterpret_cast<const int32_t *>(bytes);
@@ -23,14 +28,9 @@ static inline int32_t fourBytesToIntCurrent(const int8_t *bytes)
 	return fourBytesToInt(bytes) / 100;
 }
 
-void floatToBytes(float s, uint8_t *d)
+static inline int32_t fourBytesToIntSpeed(const int8_t *bytes)
 {
-	union {
-		float value;
-		uint8_t bytes[4];
-	} float_union_t;
-	float_union_t.value = s;
-	memcpy(d, float_union_t.bytes, 4);
+	return fourBytesToInt(bytes) / 100;
 }
 
 // TODO: add logging
@@ -159,32 +159,34 @@ void Roller485::setMaxCurrent(int32_t max_current, Roller485::motor_mode_t mode)
 	}
 }
 
+void Roller485::setSpeed(uint32_t speed)
+{
+	int8_t speed_bytes[4] = {0, 0, 0, 0};
+	intToFourBytesSpeed(speed, speed_bytes);
+	uint8_t command[5] = {SPEED_MODE_TARGET_SPEED, static_cast<uint8_t>(speed_bytes[0]),
+			      static_cast<uint8_t>(speed_bytes[1]),
+			      static_cast<uint8_t>(speed_bytes[2]),
+			      static_cast<uint8_t>(speed_bytes[3])};
+	printk("Speed bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
+	       command[1]);
+	if (sendAndCheck(command) == 0) {
+		printk("Speed set to %d RPM\n", fourBytesToIntSpeed(speed_bytes));
+	} else {
+		printk("Failed to set speed\n");
+	}
+}
+
 void Roller485::setCurrent(int32_t current)
 {
 	int8_t current_bytes[4] = {0, 0, 0, 0};
-	//	uint8_t *test;
-	//	test = (uint8_t *)&current;
-
 	intToFourBytesCurrent(current, current_bytes);
-	//	uint8_t curr[4] = {};
-	//	floatToBytes(static_cast<float>(current), curr);
-
 	uint8_t command[5] = {CURRENT_MODE_CURRENT_TARGET, static_cast<uint8_t>(current_bytes[0]),
 			      static_cast<uint8_t>(current_bytes[1]),
 			      static_cast<uint8_t>(current_bytes[2]),
 			      static_cast<uint8_t>(current_bytes[3])};
-	//	uint8_t command[5] = {CURRENT_MODE_CURRENT_TARGET, curr[0], curr[1], curr[2],
-	// curr[3]};
-	//	uint8_t test_command[5] = {CURRENT_MODE_CURRENT_TARGET, test[0], test[1], test[2],
-	// test[3]};
 
 	printk("Current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
 	       command[1]);
-
-	//	uint8_t curr[4] = {}
-	//	floatToBytes(static_cast<float>(current), curr);
-	//	printk("Current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", test[3], test[2], test[1],
-	// test[0]);
 
 	if (sendAndCheck(command) == 0) {
 		printk("Current set to %d mA\n", fourBytesToIntCurrent(current_bytes));

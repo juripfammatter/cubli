@@ -36,6 +36,7 @@ class Roller485
 	void setMaxCurrent(int32_t max_current, motor_mode_t mode);
 	void setSpeed(uint32_t speed);
 	void setCurrent(int32_t current);
+	int32_t getEncoderCounter();
 
       private:
 	int sendAndCheck(uint8_t *data);

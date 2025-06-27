@@ -184,13 +184,23 @@ void Roller485::setCurrent(int32_t current)
 	//	uint8_t curr[4] = {}
 	//	floatToBytes(static_cast<float>(current), curr);
 	//	printk("Current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", test[3], test[2], test[1],
-	//test[0]);
+	// test[0]);
 
 	if (sendAndCheck(command) == 0) {
 		printk("Current set to %d mA\n", fourBytesToIntCurrent(current_bytes));
 	} else {
 		printk("Failed to set current\n");
 	}
+}
+int32_t Roller485::getEncoderCounter()
+{
+	uint8_t buffer[5] = {ENCODER_COUNTER, 0, 0, 0, 0};
+	i2c_write_read(i2c_dev, i2c_address, buffer, 1, &buffer[1], 4);
+	printk("Encoder counter response: 0x%02X 0x%02X 0x%02X 0x%02X\n", buffer[4], buffer[3],
+	       buffer[2], buffer[1]);
+	int8_t data[4] = {static_cast<int8_t>(buffer[1]), static_cast<int8_t>(buffer[2]),
+			  static_cast<int8_t>(buffer[3]), static_cast<int8_t>(buffer[4])};
+	return fourBytesToInt(data);
 }
 
 } // namespace roller485

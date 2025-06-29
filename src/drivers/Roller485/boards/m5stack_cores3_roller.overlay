@@ -1,0 +1,15 @@
+//&i2c0 {
+//	roller485: roller485@64 {
+//		compatible = "m5stack,roller485";
+//		reg = <0x64>;
+//		status = "okay";
+//	};
+//};
+
+//&pinctrl {
+//    i2c0_default: i2c0_default {
+//        group1 {
+//            pinmux = <I2C0_SDA_GPIO12>, <I2C0_SCL_GPIO11>;
+//        };
+//    };
+//};

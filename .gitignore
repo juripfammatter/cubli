@@ -34,3 +34,9 @@
 
 # Pycharm/CLion
 .idea/
+
+# log files
+logs/
+
+eigen*/
+datasheets/

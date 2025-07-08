@@ -52,9 +52,9 @@ Roller485::Roller485(uint8_t i2c_address)
 
 Roller485::~Roller485() = default;
 
-int Roller485::sendAndCheck(uint8_t *data)
+int Roller485::sendAndCheck(uint8_t *data, size_t length)
 {
-	int ret = i2c_write(this->i2c_dev, data, sizeof(data), this->i2c_address);
+	int ret = i2c_write(this->i2c_dev, data, length, this->i2c_address);
 	if (ret != 0) {
 		printk("Failed to send I2C command: %d\n", ret);
 		return ret;
@@ -64,7 +64,7 @@ int Roller485::sendAndCheck(uint8_t *data)
 void Roller485::enableMotor()
 {
 	uint8_t command[2] = {MOTOR_ENABLE, 0x01};
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 2) == 0) {
 		motor_enabled = true;
 		setRGBColor(0, 255, 0);
 		printk("Motor enabled\n");
@@ -77,7 +77,7 @@ void Roller485::enableMotor()
 void Roller485::disableMotor()
 {
 	uint8_t command[2] = {MOTOR_ENABLE, 0x00};
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 2) == 0) {
 		motor_enabled = false;
 		setRGBColor(0, 0, 255);
 		printk("Motor disabled\n");
@@ -94,7 +94,7 @@ void Roller485::setMode(Roller485::motor_mode_t mode)
 	}
 
 	uint8_t command[2] = {MOTOR_MODE, static_cast<uint8_t>(mode)};
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 2) == 0) {
 		motor_mode = mode;
 		printk("Motor mode set to %d\n", mode);
 	} else {
@@ -105,7 +105,7 @@ void Roller485::setMode(Roller485::motor_mode_t mode)
 void Roller485::setRGBUserMode()
 {
 	uint8_t command[2] = {RGB_USER_MODE, 0x01};
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 2) == 0) {
 		printk("Motor mode set to user mode\n");
 	} else {
 		printk("Failed to set motor mode to user mode\n");
@@ -115,7 +115,7 @@ void Roller485::setRGBUserMode()
 void Roller485::setRGBColor(uint8_t red, uint8_t green, uint8_t blue)
 {
 	uint8_t command[4] = {RGB_COLOR, blue, green, red}; // BGR format
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 2) == 0) {
 		//		printk("RGB color set to R:%d G:%d B:%d\n", red, green, blue);
 	} else {
 		printk("Failed to set RGB color\n");
@@ -151,7 +151,7 @@ void Roller485::setMaxCurrent(int32_t max_current, Roller485::motor_mode_t mode)
 	uint8_t command[5] = {address, max_current_bytes[0], max_current_bytes[1],
 			      max_current_bytes[2], max_current_bytes[3]};
 
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 5) == 0) {
 		printk("Max current set to %d mA for mode %d\n",
 		       fourBytesToIntCurrent(max_current_bytes), mode);
 	} else {
@@ -159,7 +159,7 @@ void Roller485::setMaxCurrent(int32_t max_current, Roller485::motor_mode_t mode)
 	}
 }
 
-void Roller485::setSpeed(uint32_t speed)
+void Roller485::setSpeed(int32_t speed)
 {
 	int8_t speed_bytes[4] = {0, 0, 0, 0};
 	intToFourBytesSpeed(speed, speed_bytes);
@@ -169,7 +169,7 @@ void Roller485::setSpeed(uint32_t speed)
 			      static_cast<uint8_t>(speed_bytes[3])};
 	printk("Speed bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
 	       command[1]);
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 5) == 0) {
 		printk("Speed set to %d RPM\n", fourBytesToIntSpeed(speed_bytes));
 	} else {
 		printk("Failed to set speed\n");
@@ -188,7 +188,7 @@ void Roller485::setCurrent(int32_t current)
 	printk("Current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
 	       command[1]);
 
-	if (sendAndCheck(command) == 0) {
+	if (sendAndCheck(command, 5) == 0) {
 		printk("Current set to %d mA\n", fourBytesToIntCurrent(current_bytes));
 	} else {
 		printk("Failed to set current\n");

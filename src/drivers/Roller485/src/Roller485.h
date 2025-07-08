@@ -34,12 +34,12 @@ class Roller485
 	void setRGBUserMode();
 	void setRGBColor(uint8_t red, uint8_t green, uint8_t blue);
 	void setMaxCurrent(int32_t max_current, motor_mode_t mode);
-	void setSpeed(uint32_t speed);
+	void setSpeed(int32_t speed);
 	void setCurrent(int32_t current);
 	int32_t getEncoderCounter();
 
       private:
-	int sendAndCheck(uint8_t *data);
+	int sendAndCheck(uint8_t *data, size_t length);
 
 	const uint8_t i2c_address;
 	const struct device *i2c_dev;

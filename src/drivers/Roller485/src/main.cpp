@@ -28,14 +28,14 @@ int main(void)
 	motor.setMode(roller485::Roller485::SPEED_MODE);
 	k_sleep(K_MSEC(500));
 	motor.enableMotor();
-	while (true) {
+	for (int i = 0; i < 5; i++) {
 
-		//		motor.setMode(roller485::Roller485::ENCODER_MODE);
-		//		int32_t encoder_value = motor.getEncoderCounter();
-		//		printk("Encoder value: %d\n", encoder_value);
-
-		motor.setMode(roller485::Roller485::SPEED_MODE);
-		motor.setSpeed(400);
-		k_sleep(K_MSEC(100));
+		motor.setSpeed(1000);
+		k_sleep(K_MSEC(1000));
+		motor.setSpeed(-1000);
+		k_sleep(K_MSEC(1000));
 	}
+	motor.setSpeed(0);
+	k_sleep(K_MSEC(1000));
+	motor.disableMotor();
 }

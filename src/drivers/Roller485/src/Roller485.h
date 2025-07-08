@@ -35,7 +35,14 @@ class Roller485
 	void setRGBColor(uint8_t red, uint8_t green, uint8_t blue);
 	void setMaxCurrent(int32_t max_current, motor_mode_t mode);
 	void setSpeed(int32_t speed);
+	int32_t getSpeed();
+	void setSpeedPID(float p, float i, float d);
+	void setPosition(float position);
+	float getPosition();
+	void setPositionPID(float p, float i, float d);
 	void setCurrent(int32_t current);
+	int32_t getCurrent();
+	int32_t getInternalTemperature();
 	int32_t getEncoderCounter();
 
       private:

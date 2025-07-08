@@ -8,19 +8,14 @@ static inline void intToFourBytes(int32_t value, int8_t *bytes)
 	*reinterpret_cast<int32_t *>(bytes) = static_cast<int32_t>(value);
 }
 
-static inline void intToFourBytesCurrent(int32_t value, int8_t *bytes)
+static inline void floatToFourBytesCurrent(float value, int8_t *bytes)
 {
-	intToFourBytes(value * 100, bytes);
+	intToFourBytes(static_cast<int32_t>(value * 100), bytes);
 }
 
-static inline void intToFourBytesSpeed(int32_t value, int8_t *bytes)
+static inline void floatToFourBytesSpeed(float value, int8_t *bytes)
 {
-	intToFourBytes(value * 100, bytes);
-}
-
-static inline void intToFourBytesPosition(int32_t value, int8_t *bytes)
-{
-	intToFourBytes(value * 100, bytes);
+	intToFourBytes(static_cast<int32_t>(value * 100), bytes);
 }
 
 static inline void floatToFourBytesPosition(float value, int8_t *bytes)
@@ -46,15 +41,14 @@ static inline int32_t fourBytesToIntCurrent(const int8_t *bytes)
 {
 	return fourBytesToInt(bytes) / 100;
 }
-
-static inline int32_t fourBytesToIntSpeed(const int8_t *bytes)
+static inline float fourBytesToFloatCurrent(const int8_t *bytes)
 {
-	return fourBytesToInt(bytes) / 100;
+	return static_cast<float>(fourBytesToInt(bytes)) / 100;
 }
 
-static inline int32_t fourBytesToIntPosition(const int8_t *bytes)
+static inline float fourBytesToFloatSpeed(const int8_t *bytes)
 {
-	return fourBytesToInt(bytes) / 100;
+	return static_cast<float>(fourBytesToInt(bytes)) / 100.0f;
 }
 
 static inline float fourBytesToFloatPosition(const int8_t *bytes)
@@ -70,6 +64,11 @@ static inline float fourBytesToFloatPD(const int8_t *bytes)
 static inline float fourBytesToFloatI(const int8_t *bytes)
 {
 	return static_cast<float>(fourBytesToInt(bytes)) / 10000000.0f;
+}
+
+static inline float fourBytesToFloatTemp(const int8_t *bytes)
+{
+	return static_cast<float>(fourBytesToInt(bytes));
 }
 
 // TODO: add logging
@@ -160,7 +159,7 @@ void Roller485::setRGBColor(uint8_t red, uint8_t green, uint8_t blue)
 		printk("Failed to set RGB color\n");
 	}
 }
-void Roller485::setMaxCurrent(int32_t max_current, Roller485::motor_mode_t mode)
+void Roller485::setMaxCurrent(float max_current, Roller485::motor_mode_t mode)
 {
 	uint8_t address;
 	int8_t max_current_bytes[4] = {0, 0, 0, 0};
@@ -183,7 +182,7 @@ void Roller485::setMaxCurrent(int32_t max_current, Roller485::motor_mode_t mode)
 		return;
 	}
 
-	intToFourBytesCurrent(max_current, max_current_bytes);
+	floatToFourBytesCurrent(max_current, max_current_bytes);
 
 	printk("Max current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", max_current_bytes[0],
 	       max_current_bytes[1], max_current_bytes[2], max_current_bytes[3]);
@@ -200,14 +199,14 @@ void Roller485::setMaxCurrent(int32_t max_current, Roller485::motor_mode_t mode)
 	}
 }
 
-void Roller485::setSpeed(int32_t speed)
+void Roller485::setSpeed(float speed)
 {
 	if (motor_mode != SPEED_MODE) {
 		printk("Motor is not in speed mode, setting speed has no effect\n");
 	}
 
 	int8_t speed_bytes[4] = {0, 0, 0, 0};
-	intToFourBytesSpeed(speed, speed_bytes);
+	floatToFourBytesSpeed(speed, speed_bytes);
 	uint8_t command[5] = {SPEED_MODE_TARGET_SPEED, static_cast<uint8_t>(speed_bytes[0]),
 			      static_cast<uint8_t>(speed_bytes[1]),
 			      static_cast<uint8_t>(speed_bytes[2]),
@@ -216,13 +215,14 @@ void Roller485::setSpeed(int32_t speed)
 	printk("Speed bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
 	       command[1]);
 	if (sendAndCheck(command, 5) == 0) {
-		printk("Speed set to %d RPM\n", fourBytesToIntSpeed(speed_bytes));
+		printk("Speed set to %f RPM\n",
+		       static_cast<double>(fourBytesToFloatSpeed(speed_bytes)));
 	} else {
 		printk("Failed to set speed\n");
 	}
 }
 
-int32_t Roller485::getSpeed()
+float Roller485::getSpeed()
 {
 	if (motor_mode != SPEED_MODE) {
 		printk("Motor is not in speed mode, getting speed has no effect\n");
@@ -232,7 +232,7 @@ int32_t Roller485::getSpeed()
 	i2c_write_read(i2c_dev, i2c_address, buffer, 1, &buffer[1], 4);
 	int8_t data[4] = {static_cast<int8_t>(buffer[1]), static_cast<int8_t>(buffer[2]),
 			  static_cast<int8_t>(buffer[3]), static_cast<int8_t>(buffer[4])};
-	return fourBytesToIntSpeed(data);
+	return fourBytesToFloatSpeed(data);
 }
 
 void Roller485::setSpeedPID(float p, float i, float d)
@@ -344,13 +344,13 @@ void Roller485::setPositionPID(float p, float i, float d)
 	}
 }
 
-void Roller485::setCurrent(int32_t current)
+void Roller485::setCurrent(float current)
 {
 	if (motor_mode != CURRENT_MODE) {
 		printk("Motor is not in current mode, setting current has no effect\n");
 	}
 	int8_t current_bytes[4] = {0, 0, 0, 0};
-	intToFourBytesCurrent(current, current_bytes);
+	floatToFourBytesCurrent(current, current_bytes);
 	uint8_t command[5] = {CURRENT_MODE_CURRENT_TARGET, static_cast<uint8_t>(current_bytes[0]),
 			      static_cast<uint8_t>(current_bytes[1]),
 			      static_cast<uint8_t>(current_bytes[2]),
@@ -365,7 +365,22 @@ void Roller485::setCurrent(int32_t current)
 		printk("Failed to set current\n");
 	}
 }
-int32_t Roller485::getEncoderCounter()
+
+float Roller485::getCurrent()
+{
+	if (motor_mode != CURRENT_MODE) {
+		printk("Motor is not in current mode, getting current has no effect\n");
+		return 0.0f;
+	}
+
+	uint8_t buffer[5] = {CURRENT_MODE_READBACK_CURRENT, 0, 0, 0, 0};
+	i2c_write_read(i2c_dev, i2c_address, buffer, 1, &buffer[1], 4);
+	int8_t data[4] = {static_cast<int8_t>(buffer[1]), static_cast<int8_t>(buffer[2]),
+			  static_cast<int8_t>(buffer[3]), static_cast<int8_t>(buffer[4])};
+	return fourBytesToFloatCurrent(data);
+}
+
+float Roller485::getEncoderCounter()
 {
 	if (motor_mode != ENCODER_MODE) {
 		printk("Motor is not in encoder mode, getting encoder counter has no effect\n");
@@ -376,7 +391,15 @@ int32_t Roller485::getEncoderCounter()
 	       buffer[2], buffer[1]);
 	int8_t data[4] = {static_cast<int8_t>(buffer[1]), static_cast<int8_t>(buffer[2]),
 			  static_cast<int8_t>(buffer[3]), static_cast<int8_t>(buffer[4])};
-	return fourBytesToInt(data);
+	return static_cast<float>(fourBytesToInt(data));
+}
+float Roller485::getInternalTemperature()
+{
+	uint8_t buffer[5] = {INTERNAL_TEMP, 0, 0, 0, 0};
+	i2c_write_read(i2c_dev, i2c_address, buffer, 1, &buffer[1], 4);
+	int8_t data[4] = {static_cast<int8_t>(buffer[1]), static_cast<int8_t>(buffer[2]),
+			  static_cast<int8_t>(buffer[3]), static_cast<int8_t>(buffer[4])};
+	return fourBytesToFloatTemp(data);
 }
 
 } // namespace roller485

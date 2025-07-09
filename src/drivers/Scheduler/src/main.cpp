@@ -38,18 +38,16 @@ K_TIMER_DEFINE(logger_timer, loggerCallbackFunction, NULL);
 int main(void)
 {
 	/* Initialize Thread */
-	k_tid_t estimator_thread_tid = k_thread_create(
-		&estimator_thread, estimator_thread_stack_area,
-		K_THREAD_STACK_SIZEOF(estimator_thread_stack_area), estimatorThreadFunction, NULL,
-		NULL, NULL, ESTIMATOR_THREAD_PRIORITY, 0, K_FOREVER);
-	k_tid_t controller_thread_tid = k_thread_create(
-		&controller_thread, controller_thread_stack_area,
-		K_THREAD_STACK_SIZEOF(controller_thread_stack_area), controllerThreadFunction, NULL,
-		NULL, NULL, CONTROLLER_THREAD_PRIORITY, 0, K_FOREVER);
-	k_tid_t logger_thread_tid = k_thread_create(&logger_thread, logger_thread_stack_area,
-						    K_THREAD_STACK_SIZEOF(logger_thread_stack_area),
-						    loggerThreadFunction, NULL, NULL, NULL,
-						    LOGGER_THREAD_PRIORITY, 0, K_FOREVER);
+	k_thread_create(&estimator_thread, estimator_thread_stack_area,
+			K_THREAD_STACK_SIZEOF(estimator_thread_stack_area), estimatorThreadFunction,
+			NULL, NULL, NULL, ESTIMATOR_THREAD_PRIORITY, 0, K_FOREVER);
+	k_thread_create(&controller_thread, controller_thread_stack_area,
+			K_THREAD_STACK_SIZEOF(controller_thread_stack_area),
+			controllerThreadFunction, NULL, NULL, NULL, CONTROLLER_THREAD_PRIORITY, 0,
+			K_FOREVER);
+	k_thread_create(&logger_thread, logger_thread_stack_area,
+			K_THREAD_STACK_SIZEOF(logger_thread_stack_area), loggerThreadFunction, NULL,
+			NULL, NULL, LOGGER_THREAD_PRIORITY, 0, K_FOREVER);
 
 	k_thread_name_set(&estimator_thread, "estimator_thread");
 	k_thread_name_set(&controller_thread, "controller_thread");
@@ -114,14 +112,6 @@ void controllerThreadFunction(void *p1, void *p2, void *p3)
 	while (true) {
 		motor_speed = (int32_t)(rpm2rads(motor.getSpeed()) * 1000000.0f);
 		atomic_set(&latest_motor_measurements[0], motor_speed);
-
-		//		for (int i = 0; i < 3; ++i) {
-		//			state[i] = double(atomic_get(&latest_state[i])) / 1000000.0;
-		//		}
-		//		double time = double(atomic_get(&latest_imu_measurements[0])) /
-		// 1000.0; 		printk("%f: State: [%f, %f, %f]\n", time, state[0],
-		// state[1],
-		// state[2]);
 		k_thread_suspend(&controller_thread);
 	}
 }
@@ -134,14 +124,9 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 	uint8_t size;
 
 	while (true) {
-		// Wait for the timer to expire
 		k_thread_suspend(&logger_thread);
-		//		printk("%d\n", ring_buf_is_empty(&log_ring_buffer));
-		//		printk("ring buffer free space: %d\n",
-		// ring_buf_item_space_get(&log_ring_buffer));
 
 		while (!ring_buf_is_empty(&log_ring_buffer)) {
-			// Get the next item from the ring buffer
 			if (ring_buf_item_get(&log_ring_buffer, &type, &value, data, &size) < 0) {
 				printk("Failed to get item from ring buffer\n");
 				continue;
@@ -164,7 +149,7 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 				       "state: [%0.6f, %0.6f, %0.6f]\n",
 				       time, ax, ay, az, gx, gy, gz, motor_speed, x1, x2, x3);
 			} else {
-				/* Dump data without formatting*/
+				// Dump data without formatting
 				for (int i = 0; i < size; ++i) {
 					printk("%d ", data[i]);
 				}

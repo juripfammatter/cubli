@@ -1,0 +1,7 @@
+&i2c0 {
+	bmi270@69 {
+		compatible = "bosch,bmi270";
+		reg = <0x69>;
+		status = "okay";
+	};
+};

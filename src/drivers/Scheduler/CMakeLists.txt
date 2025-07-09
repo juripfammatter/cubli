@@ -7,3 +7,4 @@ project(scheduler)
 
 FILE(GLOB app_sources src/*.cpp)
 target_sources(app PRIVATE ${app_sources})
+target_include_directories(app PRIVATE lib/eigen)

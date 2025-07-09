@@ -5,8 +5,13 @@
 #include <autoconf.h>
 #include "IMU.h"
 #include "Estimator.h"
+#include "Controller.h"
 #include "Synchronization.h"
 #include "Roller485.h"
+
+#include "../lib/eigen/Eigen/Core"
+
+using Eigen::VectorXf;
 
 #define ESTIMATOR_STACK_SIZE       2000
 #define CONTROLLER_STACK_SIZE      2000
@@ -69,11 +74,14 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 	estimator::Estimator estimator;
 	std::array<uint32_t, 7> m_imu{0};
 	std::array<uint32_t, 8> m{0};
-	std::array<uint32_t, 11> log_data{0};
+	std::array<uint32_t, 15> log_data{0};
 	uint16_t type = 0x01; // measurements
 	uint8_t value = 0x01;
 
+	uint32_t x1, x2, x3, r1, r2, r3, u1;
+
 	while (true) {
+
 		imu.getMeasurements(m_imu);
 		for (int i = 0; i < 7; ++i) {
 			atomic_set(&latest_imu_measurements[i], m[i]);
@@ -85,15 +93,19 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 
 		estimator.estimateState(m);
 
-		uint32_t x1, x2, x3;
 		x1 = atomic_get(&latest_state[0]);
 		x2 = atomic_get(&latest_state[1]);
 		x3 = atomic_get(&latest_state[2]);
+		r1 = atomic_get(&latest_reference[0]);
+		r2 = atomic_get(&latest_reference[1]);
+		r3 = atomic_get(&latest_reference[2]);
+		u1 = atomic_get(&latest_input[0]);
 
-		log_data = {m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], x1, x2, x3};
+		log_data = {m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7],
+			    x1,   x2,   x3,   r1,   r2,   r3,   u1};
 
 		ring_buf_item_put(&log_ring_buffer, type, value,
-				  reinterpret_cast<uint32_t *>(&log_data), 11);
+				  reinterpret_cast<uint32_t *>(&log_data), 15);
 
 		k_thread_suspend(&estimator_thread);
 	}
@@ -102,17 +114,32 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 void controllerThreadFunction(void *p1, void *p2, void *p3)
 {
 	uint8_t i2c_address = 0x64;
-	roller485::Roller485 motor = roller485::Roller485(i2c_address);
-	int32_t motor_speed{};
-	//	double state[3];
+	controller::Controller controller(i2c_address);
 
-	motor.setMode(roller485::Roller485::SPEED_MODE);
+	int32_t motor_speed{};
+	VectorXf reference(1);
+	VectorXf state(1);
+	VectorXf input(1);
+
+	reference << 100.0f;
+	uint32_t counter = 0;
+
 	auto rpm2rads = [](float rpm) -> float { return (rpm * 2.0f * 3.14f) / 60.0f; };
 
 	while (true) {
-		motor_speed = (int32_t)(rpm2rads(motor.getSpeed()) * 1000000.0f);
-		atomic_set(&latest_motor_measurements[0], motor_speed);
+		if (counter++ == 250) {
+			reference << 0.0f;
+		}
 		k_thread_suspend(&controller_thread);
+		state << controller.motor.getSpeed();
+		motor_speed = (int32_t)(rpm2rads(state[0]) * 1000000.0f);
+		atomic_set(&latest_motor_measurements[0], motor_speed);
+
+		controller.compute_input(reference, state, input);
+		atomic_set(&latest_reference[0], (int32_t)(rpm2rads(reference[0]) * 1000000.0f));
+		atomic_set(&latest_input[0], (int32_t)(rpm2rads(input[0]) * 1000000.0f));
+
+		controller.motor.setSpeed(input[0]);
 	}
 }
 
@@ -120,7 +147,7 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 {
 	uint16_t type;
 	uint8_t value;
-	uint32_t data[11];
+	uint32_t data[15];
 	uint8_t size;
 
 	while (true) {
@@ -143,11 +170,18 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 				double x1 = double((int32_t)data[8]) / 1000000.0,
 				       x2 = double((int32_t)data[9]) / 1000000.0,
 				       x3 = double((int32_t)data[10]) / 1000000.0;
+				double r1 = double((int32_t)data[11]) / 1000000.0,
+				       r2 = double((int32_t)data[12]) / 1000000.0,
+				       r3 = double((int32_t)data[13]) / 1000000.0;
+				double u1 = double((int32_t)data[14]) / 1000000.0;
 
 				printk("time: [%0.6f], "
 				       "imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f], "
-				       "state: [%0.6f, %0.6f, %0.6f]\n",
-				       time, ax, ay, az, gx, gy, gz, motor_speed, x1, x2, x3);
+				       "state: [%0.6f, %0.6f, %0.6f], "
+				       "reference: [%0.6f, %0.6f, %0.6f], "
+				       "input: [%0.6f]\n",
+				       time, ax, ay, az, gx, gy, gz, motor_speed, x1, x2, x3, r1,
+				       r2, r3, u1);
 			} else {
 				// Dump data without formatting
 				for (int i = 0; i < size; ++i) {

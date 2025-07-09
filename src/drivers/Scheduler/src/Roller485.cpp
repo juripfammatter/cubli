@@ -212,11 +212,11 @@ void Roller485::setSpeed(float speed)
 			      static_cast<uint8_t>(speed_bytes[2]),
 			      static_cast<uint8_t>(speed_bytes[3])};
 
-	printk("Speed bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
-	       command[1]);
+	//	printk("Speed bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3],
+	// command[2], 	       command[1]);
 	if (sendAndCheck(command, 5) == 0) {
-		printk("Speed set to %f RPM\n",
-		       static_cast<double>(fourBytesToFloatSpeed(speed_bytes)));
+		//		printk("Speed set to %f RPM\n",
+		//		       static_cast<double>(fourBytesToFloatSpeed(speed_bytes)));
 	} else {
 		printk("Failed to set speed\n");
 	}
@@ -286,12 +286,12 @@ void Roller485::setPosition(float position)
 		static_cast<uint8_t>(position_bytes[1]), static_cast<uint8_t>(position_bytes[2]),
 		static_cast<uint8_t>(position_bytes[3])};
 
-	printk("Position bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
-	       command[1]);
+	//	printk("Position bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3],
+	//command[2], 	       command[1]);
 
 	if (sendAndCheck(command, 5) == 0) {
-		printk("Position set to %.2f°\n",
-		       static_cast<double>(fourBytesToFloatPosition(position_bytes)));
+		//		printk("Position set to %.2f°\n",
+		//		       static_cast<double>(fourBytesToFloatPosition(position_bytes)));
 	} else {
 		printk("Failed to set position\n");
 	}
@@ -356,11 +356,12 @@ void Roller485::setCurrent(float current)
 			      static_cast<uint8_t>(current_bytes[2]),
 			      static_cast<uint8_t>(current_bytes[3])};
 
-	printk("Current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3], command[2],
-	       command[1]);
+	//	printk("Current bytes: 0x%02X 0x%02X 0x%02X 0x%02X\n", command[4], command[3],
+	//command[2], 	       command[1]);
 
 	if (sendAndCheck(command, 5) == 0) {
-		printk("Current set to %d mA\n", fourBytesToIntCurrent(current_bytes));
+		//		printk("Current set to %d mA\n",
+		//fourBytesToIntCurrent(current_bytes));
 	} else {
 		printk("Failed to set current\n");
 	}
@@ -387,8 +388,8 @@ float Roller485::getEncoderCounter()
 	}
 	uint8_t buffer[5] = {ENCODER_COUNTER, 0, 0, 0, 0};
 	i2c_write_read(i2c_dev, i2c_address, buffer, 1, &buffer[1], 4);
-	printk("Encoder counter response: 0x%02X 0x%02X 0x%02X 0x%02X\n", buffer[4], buffer[3],
-	       buffer[2], buffer[1]);
+	//	printk("Encoder counter response: 0x%02X 0x%02X 0x%02X 0x%02X\n", buffer[4],
+	//buffer[3], 	       buffer[2], buffer[1]);
 	int8_t data[4] = {static_cast<int8_t>(buffer[1]), static_cast<int8_t>(buffer[2]),
 			  static_cast<int8_t>(buffer[3]), static_cast<int8_t>(buffer[4])};
 	return static_cast<float>(fourBytesToInt(data));

@@ -50,7 +50,7 @@ def plot_states(states: pd.DataFrame, measurements: pd.DataFrame = None):
         sns.lineplot(
             data=measurements,
             x="time",
-            y=measurements["motor_vel"],
+            y=measurements["imu"].apply(lambda x: x[6]),
             label="Motor Velocity Measurements",
             color="red",
             marker="o",

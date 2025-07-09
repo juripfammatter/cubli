@@ -6,6 +6,7 @@
 #include "IMU.h"
 #include "Estimator.h"
 #include "Synchronization.h"
+#include "Roller485.h"
 
 #define ESTIMATOR_STACK_SIZE       2000
 #define CONTROLLER_STACK_SIZE      2000
@@ -68,26 +69,33 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 {
 	imu::IMU imu;
 	estimator::Estimator estimator;
-	std::array<uint32_t, 7> m{0};
-	std::array<uint32_t, 10> log_data{0};
+	std::array<uint32_t, 7> m_imu{0};
+	std::array<uint32_t, 8> m{0};
+	std::array<uint32_t, 11> log_data{0};
 	uint16_t type = 0x01; // measurements
 	uint8_t value = 0x01;
 
 	while (true) {
-		imu.getMeasurements(m);
+		imu.getMeasurements(m_imu);
+		for (int i = 0; i < 7; ++i) {
+			atomic_set(&latest_imu_measurements[i], m[i]);
+		}
+
+		uint32_t motor_speed = atomic_get(&latest_motor_measurements[0]);
+		m = {m_imu[0], m_imu[1], m_imu[2], m_imu[3],
+		     m_imu[4], m_imu[5], m_imu[6], motor_speed};
+
 		estimator.estimateState(m);
+
 		uint32_t x1, x2, x3;
 		x1 = atomic_get(&latest_state[0]);
 		x2 = atomic_get(&latest_state[1]);
 		x3 = atomic_get(&latest_state[2]);
 
-		log_data = {m[0], m[1], m[2], m[3], m[4], m[5], m[6], x1, x2, x3};
+		log_data = {m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], x1, x2, x3};
 
 		ring_buf_item_put(&log_ring_buffer, type, value,
-				  reinterpret_cast<uint32_t *>(&log_data), 10);
-		for (int i = 0; i < 7; ++i) {
-			atomic_set(&latest_measurements[i], m[i]);
-		}
+				  reinterpret_cast<uint32_t *>(&log_data), 11);
 
 		k_thread_suspend(&estimator_thread);
 	}
@@ -95,16 +103,25 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 
 void controllerThreadFunction(void *p1, void *p2, void *p3)
 {
-	// Placeholder for controller logic
-	double state[3];
+	uint8_t i2c_address = 0x64;
+	roller485::Roller485 motor = roller485::Roller485(i2c_address);
+	int32_t motor_speed{};
+	//	double state[3];
+
+	motor.setMode(roller485::Roller485::SPEED_MODE);
+	auto rpm2rads = [](float rpm) -> float { return (rpm * 2.0f * 3.14f) / 60.0f; };
+
 	while (true) {
-		// Simulate some controller work
-		for (int i = 0; i < 3; ++i) {
-			state[i] = double(atomic_get(&latest_state[i])) / 1000000.0;
-		}
-		double time = double(atomic_get(&latest_measurements[0])) / 1000.0;
-		//		printk("%f: State: [%f, %f, %f]\n", time, state[0], state[1],
-		//state[2]);
+		motor_speed = (int32_t)(rpm2rads(motor.getSpeed()) * 1000000.0f);
+		atomic_set(&latest_motor_measurements[0], motor_speed);
+
+		//		for (int i = 0; i < 3; ++i) {
+		//			state[i] = double(atomic_get(&latest_state[i])) / 1000000.0;
+		//		}
+		//		double time = double(atomic_get(&latest_imu_measurements[0])) /
+		// 1000.0; 		printk("%f: State: [%f, %f, %f]\n", time, state[0],
+		// state[1],
+		// state[2]);
 		k_thread_suspend(&controller_thread);
 	}
 }
@@ -113,7 +130,7 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 {
 	uint16_t type;
 	uint8_t value;
-	uint32_t data[10];
+	uint32_t data[11];
 	uint8_t size;
 
 	while (true) {
@@ -137,14 +154,15 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 				double gx = double((int32_t)data[4]) / 1000000.0,
 				       gy = double((int32_t)data[5]) / 1000000.0,
 				       gz = double((int32_t)data[6]) / 1000000.0;
-				double x1 = double((int32_t)data[7]) / 1000000.0,
-				       x2 = double((int32_t)data[8]) / 1000000.0,
-				       x3 = double((int32_t)data[9]) / 1000000.0;
+				double motor_speed = double((int32_t)data[7]) / 1000000.0;
+				double x1 = double((int32_t)data[8]) / 1000000.0,
+				       x2 = double((int32_t)data[9]) / 1000000.0,
+				       x3 = double((int32_t)data[10]) / 1000000.0;
 
 				printk("time: [%0.6f], "
-				       "imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f], "
+				       "imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f], "
 				       "state: [%0.6f, %0.6f, %0.6f]\n",
-				       time, ax, ay, az, gx, gy, gz, x1, x2, x3);
+				       time, ax, ay, az, gx, gy, gz, motor_speed, x1, x2, x3);
 			} else {
 				/* Dump data without formatting*/
 				for (int i = 0; i < size; ++i) {

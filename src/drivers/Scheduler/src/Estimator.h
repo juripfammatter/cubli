@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
 #include <autoconf.h>
 #include <array>
 #include "Synchronization.h"
@@ -27,7 +28,7 @@ class Estimator
 	explicit Estimator();
 	virtual ~Estimator() = default;
 
-	void estimateState(const std::array<uint32_t, 7> &measurements);
+	void estimateState(const std::array<uint32_t, 8> &measurements);
 
       private:
 	MatrixXf K, C;

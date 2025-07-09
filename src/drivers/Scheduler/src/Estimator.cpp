@@ -18,10 +18,11 @@ Estimator::Estimator() : K(3, 2), C(2, 3)
 	z_bar.setZero();
 }
 
-void Estimator::estimateState(const std::array<uint32_t, 7> &measurements)
+void Estimator::estimateState(const std::array<uint32_t, 8> &measurements)
 {
 	float gz = float((int32_t)measurements[6]) / 1000000.0f;
-	z_bar << gz, 0.0;
+	float motor_speed = float((int32_t)measurements[7]) / 1000000.0f;
+	z_bar << gz, motor_speed;
 	x_hat = A_cl * x_hat + K * z_bar;
 
 	for (int i = 0; i < 3; ++i) {

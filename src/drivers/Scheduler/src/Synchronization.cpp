@@ -6,5 +6,6 @@
 // Ring buffer (Data item mode)
 RING_BUF_ITEM_DECLARE(log_ring_buffer, RING_BUFFER_SIZE);
 
-atomic_t latest_measurements[7]; // Atomic array to hold the latest measurements
+atomic_t latest_imu_measurements[7];
+atomic_t latest_motor_measurements[1];
 atomic_t latest_state[3];

@@ -33,6 +33,7 @@ class Controller
 	void compute_input(VectorXf &reference, VectorXf &state, VectorXf &input);
 
 	roller485::Roller485 motor;
+	MatrixXf F; // controller gain matrix
 
       private:
 };

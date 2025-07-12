@@ -17,7 +17,7 @@
 using Eigen::Matrix3f;
 using Eigen::MatrixXf;
 using Eigen::Vector2f;
-using Eigen::Vector3f;
+using Eigen::VectorXf;
 
 namespace estimator
 {
@@ -31,9 +31,8 @@ class Estimator
 	void estimateState(const std::array<uint32_t, 8> &measurements);
 
       private:
-	MatrixXf K, C;
-	Matrix3f A, A_cl;
-	Vector3f x_hat;
+	MatrixXf K, C, A, A_cl;
+	VectorXf x_hat;
 	Vector2f z_bar;
 };
 

@@ -7,7 +7,6 @@
 #include "Estimator.h"
 #include "Controller.h"
 #include "Synchronization.h"
-#include "Roller485.h"
 
 #include "../lib/eigen/Eigen/Core"
 
@@ -74,11 +73,11 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 	estimator::Estimator estimator;
 	std::array<uint32_t, 7> m_imu{0};
 	std::array<uint32_t, 8> m{0};
-	std::array<uint32_t, 15> log_data{0};
+	std::array<uint32_t, 16> log_data{0};
 	uint16_t type = 0x01; // measurements
 	uint8_t value = 0x01;
 
-	uint32_t x1, x2, x3, r1, r2, r3, u1;
+	uint32_t x1, x2, x3, x4, r1, r2, r3, u1;
 
 	while (true) {
 
@@ -96,16 +95,17 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 		x1 = atomic_get(&latest_state[0]);
 		x2 = atomic_get(&latest_state[1]);
 		x3 = atomic_get(&latest_state[2]);
+		x4 = atomic_get(&latest_state[3]);
 		r1 = atomic_get(&latest_reference[0]);
 		r2 = atomic_get(&latest_reference[1]);
 		r3 = atomic_get(&latest_reference[2]);
 		u1 = atomic_get(&latest_input[0]);
 
 		log_data = {m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7],
-			    x1,   x2,   x3,   r1,   r2,   r3,   u1};
+			    x1,   x2,   x3,   x4,   r1,   r2,   r3,   u1};
 
 		ring_buf_item_put(&log_ring_buffer, type, value,
-				  reinterpret_cast<uint32_t *>(&log_data), 15);
+				  reinterpret_cast<uint32_t *>(&log_data), 16);
 
 		k_thread_suspend(&estimator_thread);
 	}
@@ -117,29 +117,39 @@ void controllerThreadFunction(void *p1, void *p2, void *p3)
 	controller::Controller controller(i2c_address);
 
 	int32_t motor_speed{};
-	VectorXf reference(1);
-	VectorXf state(1);
+	VectorXf reference(4);
+	VectorXf state(4);
 	VectorXf input(1);
 
-	reference << 500.0f;
+	state << 0.0f, 0.0f, 0.0f, 0.0f;
+	reference << 0.0f, 0.0f, 0.0f, 0.0f;
+	input << 0.0f;
 	uint32_t counter = 0;
 
 	auto rpm2rads = [](float rpm) -> float { return (rpm * 2.0f * 3.14f) / 60.0f; };
-
-	while (true) {
-		if (counter++ == 250) {
-			reference << 0.0f;
-		}
+	auto rads2rpm = [](float rads) -> float { return (rads * 60.0f) / (2.0f * 3.14f); };
+	while (counter < 2000) {
+		counter++;
+		//		if (counter++ == 250) {
+		//			reference << 0.0f;
+		//		}
 		k_thread_suspend(&controller_thread);
-		state << controller.motor.getSpeed();
-		motor_speed = (int32_t)(rpm2rads(state[0]) * 1000000.0f);
+		state[0] = ((float)atomic_get(&latest_state[0])) / 1000000.0f;
+		state[1] = ((float)atomic_get(&latest_state[1])) / 1000000.0f;
+		state[2] = ((float)atomic_get(&latest_state[2])) / 1000000.0f;
+		state[3] = -controller.motor.getSpeed();
+		// TODO: double check the sign
+		motor_speed = (int32_t)(rpm2rads(state[3]) * 1000000.0f);
 		atomic_set(&latest_motor_measurements[0], motor_speed);
 
 		controller.compute_input(reference, state, input);
-		atomic_set(&latest_reference[0], (int32_t)(rpm2rads(reference[0]) * 1000000.0f));
+		for (int i = 0; i < reference.size(); ++i) {
+			atomic_set(&latest_reference[i],
+				   (int32_t)(rpm2rads(reference[i]) * 1000000.0f));
+		}
 		atomic_set(&latest_input[0], (int32_t)(rpm2rads(input[0]) * 1000000.0f));
 
-		controller.motor.setSpeed(input[0]);
+		controller.motor.setSpeed(rads2rpm(input[0]));
 	}
 }
 
@@ -147,7 +157,7 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 {
 	uint16_t type;
 	uint8_t value;
-	uint32_t data[15];
+	uint32_t data[16];
 	uint8_t size;
 
 	while (true) {
@@ -169,19 +179,20 @@ void loggerThreadFunction(void *p1, void *p2, void *p3)
 				double motor_speed = double((int32_t)data[7]) / 1000000.0;
 				double x1 = double((int32_t)data[8]) / 1000000.0,
 				       x2 = double((int32_t)data[9]) / 1000000.0,
-				       x3 = double((int32_t)data[10]) / 1000000.0;
-				double r1 = double((int32_t)data[11]) / 1000000.0,
-				       r2 = double((int32_t)data[12]) / 1000000.0,
-				       r3 = double((int32_t)data[13]) / 1000000.0;
-				double u1 = double((int32_t)data[14]) / 1000000.0;
+				       x3 = double((int32_t)data[10]) / 1000000.0,
+				       x4 = double((int32_t)data[11]) / 1000000.0;
+				double r1 = double((int32_t)data[12]) / 1000000.0,
+				       r2 = double((int32_t)data[13]) / 1000000.0,
+				       r3 = double((int32_t)data[14]) / 1000000.0;
+				double u1 = double((int32_t)data[15]) / 1000000.0;
 
 				printk("time: [%0.6f], "
 				       "imu: [%0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f, %0.6f], "
-				       "state: [%0.6f, %0.6f, %0.6f], "
+				       "state: [%0.6f, %0.6f, %0.6f, %0.6f], "
 				       "reference: [%0.6f, %0.6f, %0.6f], "
 				       "input: [%0.6f]\n",
-				       time, ax, ay, az, gx, gy, gz, motor_speed, x1, x2, x3, r1,
-				       r2, r3, u1);
+				       time, ax, ay, az, gx, gy, gz, motor_speed, x1, x2, x3, x4,
+				       r1, r2, r3, u1);
 			} else {
 				// Dump data without formatting
 				for (int i = 0; i < size; ++i) {

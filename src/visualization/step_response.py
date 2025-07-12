@@ -46,34 +46,62 @@ def main():
 
     # Approximation of the PT2 system
     k = 10.2
-    log_decr = np.log(
-        [
-            (k - 8.5) / (14.50 - k),
-            (11 - k) / (k - 8.5),
-            (k - 9.8) / (11 - k),
-        ]
-    )
-    dt = sum([0.95 - 0.857, 1.04 - 0.95, 1.14 - 1.04]) / 3
 
-    xi = 1 / np.sqrt(1 + (np.pi**2) / ((sum(log_decr) / len(log_decr)) ** 2)) * 1.1
-    omega_0 = np.pi / (dt * np.sqrt(1 - xi**2)) * 1.03
+    # Stadler's method to estimate the parameters
+    # log_decr = np.log(
+    #     [
+    #         (k - 8.5) / (14.50 - k),
+    #         (11 - k) / (k - 8.5),
+    #         (k - 9.8) / (11 - k),
+    #     ]
+    # )
+    # dt = sum([0.95 - 0.857, 1.04 - 0.95, 1.14 - 1.04]) / 3
+    #
+    # xi = 1 / np.sqrt(1 + (np.pi**2) / ((sum(log_decr) / len(log_decr)) ** 2)) * 1.1
+    # omega_0 = np.pi / (dt * np.sqrt(1 - xi**2)) * 1.03
+    #
+    # scale = 10.2 / 10.44
 
-    scale = 10.2 / 10.44
+    # hand tuned values PT1 + PT2 system
+    # xi = 0.45
+    # omega_0 = 30
+    # scale = 0.67
+    #
+    # pt1 = control.tf([scale * 0.2 * omega_0], [1, 0.4 * omega_0])
+    #
+    # # Add a 0.01s time delay using a first-order Pade approximation
+    # num_delay, den_delay = control.pade(0.05, 1)
+    # delay_tf = control.tf(num_delay, den_delay)
+    # sys = (
+    #     control.tf([scale * omega_0**2], [1, 2 * xi * omega_0, omega_0**2])
+    #     * delay_tf
+    # )
+    #
+    # sys = pt1 + sys
 
-    # Add a 0.01s time delay using a first-order Pade approximation
-    num_delay, den_delay = control.pade(0.01, 1)
+    xi = 0.65
+    omega_0 = 25
+    scale = 1.0
+
+    num_delay, den_delay = control.pade(0.05, 1)
     delay_tf = control.tf(num_delay, den_delay)
     sys = (
         control.tf([scale * omega_0**2], [1, 2 * xi * omega_0, omega_0**2])
-        * delay_tf
+        # * delay_tf
     )
+
+    ss = control.ss(sys)
+    T = np.array([[0, 1], [1, 0]])
+    ss = control.similarity_transform(ss, T)
+
+    print(f"Approximated PT2 closed-loop System:\n{ss}")
 
     # input response
     u = measurements_df["input"].apply(lambda x: x[0])
     time = measurements_df["time"][0] + np.arange(
         0, len(measurements_df) * 0.005, 0.005
     )
-    state_evolution = control.forced_response(sys, T=time, U=u, X0=[0, 0, 0])
+    state_evolution = control.forced_response(ss, T=time, U=u, X0=[0, 0])
 
     sns.set_theme(style="darkgrid")
     fig, axs = plt.subplots(1, 1, figsize=(8, 4), sharex=True, dpi=300)
@@ -110,9 +138,9 @@ def main():
         linewidth=1,
     )
 
-    axs.set(xlim=(0.75, 1.5), ylim=(-1, 15))
-    axs.set_xticks([0.76, 0.857, 0.95, 1.04, 1.14, 1.24])
-    axs.set_yticks([8.5, 9.8, k, 10.44, 11, 14.5])
+    # axs.set(xlim=(0.75, 1.5), ylim=(-1, 15))
+    # axs.set_xticks([0.76, 0.857, 0.95, 1.04, 1.14, 1.24])
+    # axs.set_yticks([8.5, 9.8, k, 10.44, 11, 14.5])
     axs.legend(loc="upper right", facecolor="white")
     plt.tight_layout()
     plt.show()

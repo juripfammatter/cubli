@@ -121,7 +121,7 @@ void controllerThreadFunction(void *p1, void *p2, void *p3)
 	VectorXf state(1);
 	VectorXf input(1);
 
-	reference << 100.0f;
+	reference << 1000.0f;
 	uint32_t counter = 0;
 
 	auto rpm2rads = [](float rpm) -> float { return (rpm * 2.0f * 3.14f) / 60.0f; };

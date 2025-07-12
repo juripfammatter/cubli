@@ -9,7 +9,8 @@ namespace controller
 Controller::Controller(uint32_t i2c_address) : motor(roller485::Roller485(i2c_address))
 {
 	motor.setMode(roller485::Roller485::SPEED_MODE);
-	motor.setSpeedPID(15.0f, 0.0001f, 400.0f);
+	motor.setMaxCurrent(10000.0f, roller485::Roller485::SPEED_MODE);
+	motor.setSpeedPID(20.0f, 0.000f, 2000.0f);
 	motor.enableMotor();
 	motor.setSpeed(0.0f);
 	k_sleep(K_MSEC(500));

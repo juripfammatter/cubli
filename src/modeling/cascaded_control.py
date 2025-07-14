@@ -22,8 +22,8 @@ def main():
         "I_wheel_pivot": 372.11,  # kg*mm^2
         "I_wheel_center": 64.171,  # kg*mm^2
         "K_tau": 0.065 / 0.927,  # Unit? Nm/A : Motor constant TODO
-        "omega_0": 25,  # Natural frequency of PD controller
-        "xi": 0.65,  # Damping ratio
+        "omega_0": 10,  # Natural frequency of PD controller
+        "xi": 0.7,  # Damping ratio
     }
     json_path = os.path.join(os.getcwd(), "params.json")
     with open(json_path, "w") as f:

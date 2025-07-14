@@ -79,11 +79,11 @@ def main():
     #
     # sys = pt1 + sys
 
-    xi = 0.65
-    omega_0 = 25
+    xi = 0.7
+    omega_0 = 10
     scale = 1.0
 
-    num_delay, den_delay = control.pade(0.05, 1)
+    num_delay, den_delay = control.pade(0.01, 1)
     delay_tf = control.tf(num_delay, den_delay)
     sys = (
         control.tf([scale * omega_0**2], [1, 2 * xi * omega_0, omega_0**2])
@@ -104,7 +104,7 @@ def main():
     state_evolution = control.forced_response(ss, T=time, U=u, X0=[0, 0])
 
     sns.set_theme(style="darkgrid")
-    fig, axs = plt.subplots(1, 1, figsize=(8, 4), sharex=True, dpi=300)
+    fig, axs = plt.subplots(1, 1, figsize=(8, 10), sharex=True, dpi=300)
 
     sns.lineplot(
         data=measurements_df,

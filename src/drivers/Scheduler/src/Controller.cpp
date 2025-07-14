@@ -8,7 +8,7 @@ namespace controller
 {
 Controller::Controller(uint32_t i2c_address) : motor(roller485::Roller485(i2c_address)), F(1, 4)
 {
-	F << -1767.50543896, -69.72993041, 6.70430745, 0.28440384;
+	F << -7.04411452, -19.4462576, 0.01139029, 0.03340131;
 
 	motor.setMode(roller485::Roller485::SPEED_MODE);
 	motor.setMaxCurrent(10000.0f, roller485::Roller485::SPEED_MODE);
@@ -30,6 +30,7 @@ void Controller::compute_input(VectorXf &reference, VectorXf &state, VectorXf &i
 		return;
 	}
 	input[0] = 0.0f;
+	//	input[0] = reference[3];
 	for (int i = 0; i < reference.size(); ++i) {
 		input[0] -= F(0, i) * (state[i] - reference[i]);
 	}

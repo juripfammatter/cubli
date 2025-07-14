@@ -19,7 +19,7 @@ class NonlinearModel(Model):
         u = sp.symbols("u")
 
         I_c = self.params["I_body_pivot"] + self.params["l"] ** 2 * (
-                self.params["m_total"] - self.params["m_body"]
+            self.params["m_total"] - self.params["m_body"]
         )
         I_w = self.params["I_wheel_center"]
         m_total = self.params["m_total"]
@@ -29,12 +29,17 @@ class NonlinearModel(Model):
         self.model = sp.Matrix(
             [
                 [x_2],
-                [-u + m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)],
+                [
+                    -I_w
+                    / (I_w + I_c)
+                    * u
+                    # + m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)
+                ],
                 [x_4],
                 [
-                    +(1 + I_c / I_w) * u
-                    - m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)
-                    - w_0 ** 2 * x_3
+                    u
+                    # - m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)
+                    - w_0**2 * x_3
                     - 2 * xi * w_0 * x_4
                 ],
             ]

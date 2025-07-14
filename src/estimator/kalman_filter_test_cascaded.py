@@ -56,8 +56,8 @@ def main():
     )
     linear_model.discretize(ts=ts_control)
 
-    Q = np.diag([10000, 1, 0.00001, 0.01])  # State cost matrix
-    R = np.array([[0.001]])  # Input cost matrix
+    Q = np.diag([100, 1, 1, 1])  # State cost matrix
+    R = np.array([[1]])  # Input cost matrix
     F, S, E = control.dlqr(linear_model.ss_discrete, Q, R)
 
     with np.printoptions(precision=8, suppress=True):
@@ -125,8 +125,8 @@ def main():
         x_hat[:, i] = A @ x_hat[:, i - 1] + K_lqe @ (
             np.hstack(
                 [
-                    # measurements_df["imu"][i * divider][5],
                     theta_b,
+                    # measurements_df["imu"][i * divider][5],
                     measurements_df["imu"][i * divider][6],
                 ]
             )

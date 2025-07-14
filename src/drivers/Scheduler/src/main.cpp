@@ -128,8 +128,8 @@ void controllerThreadFunction(void *p1, void *p2, void *p3)
 	auto rads2rpm = [](float rads) -> float { return (rads * 60.0f) / (2.0f * 3.14f); };
 	while (counter < 2000) {
 		counter++;
-		//		if (counter++ == 250) {
-		//			reference << 0.0f;
+		//		if (counter == 250) {
+		//			reference << 0.0f, 0.0f, 0.0f, 0.0f;
 		//		}
 		k_thread_suspend(&controller_thread);
 		state[0] = ((float)atomic_get(&latest_state[0])) / 1000000.0f;

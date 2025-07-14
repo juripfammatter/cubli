@@ -47,7 +47,7 @@ def main():
     # setup Kalman filter
     divider = 1
     ts_control = 0.01 * divider  # Sampling time for discretization
-    ts_est = 0.005
+    ts_est = 0.001
 
     """ Controller """
     nonlinear_model = NonlinearModel(params)
@@ -56,8 +56,8 @@ def main():
     )
     linear_model.discretize(ts=ts_control)
 
-    Q = np.diag([500, 1, 1, 1])  # State cost matrix
-    R = np.array([[1]])  # Input cost matrix
+    Q = np.diag([100, 10, 0.000001, 0.00001])  # State cost matrix
+    R = np.array([[0.00000001]])  # Input cost matrix
     F, S, E = control.dlqr(linear_model.ss_discrete, Q, R)
 
     with np.printoptions(precision=8, suppress=True):
@@ -107,8 +107,8 @@ def main():
     ax = -9.81 * 0.707
     ay = -9.81 * 0.707
     gz = 0
-    tau = 0.1
-    tau_g = 0.01
+    tau = 0.005
+    tau_g = 0.005
 
     a0 = tau / (tau + ts_est)
     b0 = ts_est / (tau + ts_est)

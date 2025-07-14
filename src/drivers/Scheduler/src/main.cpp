@@ -62,9 +62,9 @@ int main(void)
 	k_thread_start(&logger_thread);
 
 	/* Initialize Timer */
-	k_timer_start(&estimator_timer, K_MSEC(500), K_MSEC(5));
+	k_timer_start(&estimator_timer, K_MSEC(500), K_MSEC(1));
 	k_timer_start(&controller_timer, K_MSEC(500), K_MSEC(10));
-	k_timer_start(&logger_timer, K_MSEC(500), K_MSEC(100));
+	k_timer_start(&logger_timer, K_MSEC(500), K_MSEC(500));
 }
 
 void estimatorThreadFunction(void *p1, void *p2, void *p3)
@@ -126,7 +126,7 @@ void controllerThreadFunction(void *p1, void *p2, void *p3)
 
 	auto rpm2rads = [](float rpm) -> float { return (rpm * 2.0f * 3.14f) / 60.0f; };
 	auto rads2rpm = [](float rads) -> float { return (rads * 60.0f) / (2.0f * 3.14f); };
-	while (counter < 2000) {
+	while (counter < 1000) {
 		counter++;
 		//		if (counter == 250) {
 		//			reference << 0.0f, 0.0f, 0.0f, 0.0f;

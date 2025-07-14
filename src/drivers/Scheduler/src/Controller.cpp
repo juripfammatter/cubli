@@ -8,7 +8,7 @@ namespace controller
 {
 Controller::Controller(uint32_t i2c_address) : motor(roller485::Roller485(i2c_address)), F(1, 4)
 {
-	F << -22.21258033, -34.50395545, 0.02847431, 0.03318161;
+	F << -8271.53430235, -2699.18108768, 0.20695488, 0.0260427;
 
 	motor.setMode(roller485::Roller485::SPEED_MODE);
 	motor.setMaxCurrent(10000.0f, roller485::Roller485::SPEED_MODE);

@@ -62,9 +62,9 @@ int main(void)
 	k_thread_start(&logger_thread);
 
 	/* Initialize Timer */
-	k_timer_start(&estimator_timer, K_NO_WAIT, K_MSEC(5));
-	k_timer_start(&controller_timer, K_NO_WAIT, K_MSEC(10));
-	k_timer_start(&logger_timer, K_NO_WAIT, K_MSEC(100));
+	k_timer_start(&estimator_timer, K_MSEC(500), K_MSEC(5));
+	k_timer_start(&controller_timer, K_MSEC(500), K_MSEC(10));
+	k_timer_start(&logger_timer, K_MSEC(500), K_MSEC(100));
 }
 
 void estimatorThreadFunction(void *p1, void *p2, void *p3)
@@ -80,7 +80,7 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 	uint32_t x1, x2, x3, x4, r1, r2, r3, u1;
 
 	while (true) {
-
+		k_thread_suspend(&estimator_thread);
 		imu.getMeasurements(m_imu);
 		for (int i = 0; i < 7; ++i) {
 			atomic_set(&latest_imu_measurements[i], m[i]);

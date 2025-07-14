@@ -29,10 +29,10 @@ class NonlinearModel(Model):
         self.model = sp.Matrix(
             [
                 [x_2],
-                [u + m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)],
+                [-u + m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)],
                 [x_4],
                 [
-                    -(1 + I_c / I_w) * u
+                    +(1 + I_c / I_w) * u
                     - m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)
                     - w_0**2 * x_3
                     - 2 * xi * w_0 * x_4

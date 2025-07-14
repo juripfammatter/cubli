@@ -106,8 +106,6 @@ void estimatorThreadFunction(void *p1, void *p2, void *p3)
 
 		ring_buf_item_put(&log_ring_buffer, type, value,
 				  reinterpret_cast<uint32_t *>(&log_data), 16);
-
-		k_thread_suspend(&estimator_thread);
 	}
 }
 
@@ -137,19 +135,18 @@ void controllerThreadFunction(void *p1, void *p2, void *p3)
 		state[0] = ((float)atomic_get(&latest_state[0])) / 1000000.0f;
 		state[1] = ((float)atomic_get(&latest_state[1])) / 1000000.0f;
 		state[2] = ((float)atomic_get(&latest_state[2])) / 1000000.0f;
-		state[3] = -controller.motor.getSpeed();
+		state[3] = -rpm2rads(controller.motor.getSpeed());
 		// TODO: double check the sign
-		motor_speed = (int32_t)(rpm2rads(state[3]) * 1000000.0f);
-		atomic_set(&latest_motor_measurements[0], motor_speed);
+		atomic_set(&latest_motor_measurements[0], (int32_t)(state[3] * 1000000.0f));
 
 		controller.compute_input(reference, state, input);
 		for (int i = 0; i < reference.size(); ++i) {
 			atomic_set(&latest_reference[i],
 				   (int32_t)(rpm2rads(reference[i]) * 1000000.0f));
 		}
-		atomic_set(&latest_input[0], (int32_t)(rpm2rads(input[0]) * 1000000.0f));
+		atomic_set(&latest_input[0], (int32_t)(input[0] * 1000000.0f));
 
-		controller.motor.setSpeed(rads2rpm(input[0]));
+		controller.motor.setSpeed(-rads2rpm(input[0]));
 	}
 }
 

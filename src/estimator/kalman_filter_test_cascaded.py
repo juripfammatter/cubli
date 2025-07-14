@@ -44,21 +44,19 @@ def main():
     with open(params_path, "r") as file:
         params = json.load(file)
 
-    # Plot the measurements
-    plot_measurements(measurements_df)
-
     # setup Kalman filter
     divider = 1
-    ts = 0.01 * divider  # Sampling time for discretization
+    ts_control = 0.01 * divider  # Sampling time for discretization
+    ts_est = 0.005
 
     """ Controller """
     nonlinear_model = NonlinearModel(params)
     linear_model = nonlinear_model.linearize(
         x_s=np.array([0, 0, 0, 0]), u_s=np.array([0])
     )
-    linear_model.discretize(ts=ts)
+    linear_model.discretize(ts=ts_control)
 
-    Q = np.diag([1000, 1.0, 0.00001, 0.00001])  # State cost matrix
+    Q = np.diag([10000, 1, 0.00001, 0.01])  # State cost matrix
     R = np.array([[0.001]])  # Input cost matrix
     F, S, E = control.dlqr(linear_model.ss_discrete, Q, R)
 
@@ -93,12 +91,42 @@ def main():
     time = [measurements_df["time"][0]]
 
     u_hat = np.zeros((linear_model.m, n_est))  # Initial input
+
+    filtered_measurements = pd.DataFrame(
+        {
+            col: [
+                np.copy(val)
+                if isinstance(val, np.ndarray)
+                else (val.copy() if isinstance(val, list) else val)
+                for val in measurements_df[col]
+            ]
+            for col in measurements_df.columns
+        }
+    )
+
+    ax = -9.81 * 0.707
+    ay = -9.81 * 0.707
+    gz = 0
+    tau = 0.1
+
+    a0 = tau / (tau + ts_est)
+    b0 = ts_est / (tau + ts_est)
     for i in range(1, n_est):
+        ax = a0 * ax + b0 * measurements_df["imu"][i * divider][0]  # low pass
+        ay = a0 * ay + b0 * measurements_df["imu"][i * divider][1]  # low pass
+        gz = a0 * gz + tau * b0 * measurements_df["imu"][i * divider][5]  # high pass
+        theta_b = -np.atan2(ay, ax) - gz - np.pi * 3 / 4
+
+        filtered_measurements["imu"][i * divider][0] = ax
+        filtered_measurements["imu"][i * divider][1] = ay
+        filtered_measurements["imu"][i * divider][5] = gz
+
         time.append(measurements_df["time"][i * divider])
         x_hat[:, i] = A @ x_hat[:, i - 1] + K_lqe @ (
             np.hstack(
                 [
-                    measurements_df["imu"][i * divider][5],
+                    # measurements_df["imu"][i * divider][5],
+                    theta_b,
                     measurements_df["imu"][i * divider][6],
                 ]
             )
@@ -117,6 +145,8 @@ def main():
         }
     )
 
+    # Plot the measurements
+    plot_measurements(measurements_df, filtered_measurements)
     plot_states(estimated_states, measurements_df, u_hat)
 
 

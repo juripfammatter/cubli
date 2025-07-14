@@ -173,7 +173,7 @@ def plot_states(
     plt.show()
 
 
-def plot_measurements(df: pd.DataFrame):
+def plot_measurements(df: pd.DataFrame, filtered_df: pd.DataFrame = None):
     sns.set_theme(style="darkgrid")
 
     fig, axs = plt.subplots(7, 1, figsize=(8, 12), sharex=True)
@@ -204,11 +204,25 @@ def plot_measurements(df: pd.DataFrame):
             color="blue",
             linewidth=0.5,
             ax=axs[i],
-            alpha=0.5,
+            alpha=1.0,
         )
         for i in range(7)
     ]
 
+    if filtered_df is not None:
+        [
+            sns.lineplot(
+                data=filtered_df[:][5:],
+                x="time",
+                y=filtered_df["imu"].apply(lambda x: x[i]),
+                label=labels[i] + " (filtered)",
+                color="orange",
+                linewidth=1.0,
+                ax=axs[i],
+                alpha=1.0,
+            )
+            for i in range(7)
+        ]
     [
         ax.set(xlabel="time [s]", ylabel=labels[i] + f" [{units[i]}]")
         for i, ax in enumerate(axs)

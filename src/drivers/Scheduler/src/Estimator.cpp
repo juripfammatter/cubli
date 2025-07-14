@@ -6,15 +6,16 @@
 
 namespace estimator
 {
-Estimator::Estimator() : K(4, 2), C(2, 4), A(4, 4), A_cl(4, 4), x_hat(4)
+Estimator::Estimator()
+	: K(4, 2), C(2, 4), A(4, 4), A_cl(4, 4), x_hat(4), z_bar(2), tau(0.1f), ts(0.005f)
 {
 	// Initialize the Kalman gain matrix
-	K << -0.03163364, 0.00498443, 1.00001507, -0.00000295, -0.98244586, -0.04599809,
-		-3.07015894, 1.03438389;
-	A << 0.96194636, 0.00770723, 0.00000093, 0.00000005, -7.61072857, 0.54144516, 0.00018593,
-		0.00000955, 0.86475484, 0.05209536, 0.97345368, 0.00848698, 172.95096811,
-		10.41907149, -5.30926444, 0.69739577;
-	C << 0.00058595, 1.00000293, 0., 0., -0.00049736, -0.00000249, -2.65251989, 0.84880637;
+	K << 0.99996064, -0.00006549, 0.00714329, 0.01309727, 0.00750633, -0.07347193, 0.02404322,
+		0.94852522;
+	A << 0.91163033, 0.00651352, 0.00033522, 0.00001422, -17.67393427, 0.30270451, 0.06704327,
+		0.00284405, 2.00799836, 0.0792178, 0.96585826, 0.00816496, 401.59967223, 15.8435596,
+		-6.82834732, 0.63299241;
+	C << 1.00000293, 0.00500001, 0., 0., -0.00049736, -0.00000249, -2.65251989, 0.84880637;
 	A_cl = (A - K * C);
 	x_hat.setZero();
 	z_bar.setZero();
@@ -22,9 +23,25 @@ Estimator::Estimator() : K(4, 2), C(2, 4), A(4, 4), A_cl(4, 4), x_hat(4)
 
 void Estimator::estimateState(const std::array<uint32_t, 8> &measurements)
 {
-	float gz = float((int32_t)measurements[6]) / 1000000.0f;
+	// get measurements
+	float ax_new = float((int32_t)measurements[1]) / 1000000.0f;
+	float ay_new = float((int32_t)measurements[2]) / 1000000.0f;
+	float gz_new = float((int32_t)measurements[6]) / 1000000.0f;
 	float motor_speed = float((int32_t)measurements[7]) / 1000000.0f;
-	z_bar << gz, motor_speed;
+
+	// complementary filter
+	float a0 = tau / (tau + ts); // 5 ms sample time
+	float b0 = ts / (tau + ts);
+
+	ax = a0 * ax + b0 * ax_new;
+	ay = a0 * ay + b0 * ay_new;
+	gz = a0 * gz + tau * b0 * gz_new;
+
+	float theta = -atan2f(ay, ax) - gz - 3.14f * 3.0f / 4.0f; // calculate angle from
+								  // accelerometer
+
+	// propagate through Kalman filter
+	z_bar << theta, motor_speed;
 	x_hat = A_cl * x_hat + K * z_bar;
 
 	for (int i = 0; i < 4; ++i) {

@@ -19,7 +19,7 @@ class NonlinearModel(Model):
         u = sp.symbols("u")
 
         I_c = self.params["I_body_pivot"] + self.params["l"] ** 2 * (
-            self.params["m_total"] - self.params["m_body"]
+                self.params["m_total"] - self.params["m_body"]
         )
         I_w = self.params["I_wheel_center"]
         m_total = self.params["m_total"]
@@ -34,7 +34,7 @@ class NonlinearModel(Model):
                 [
                     +(1 + I_c / I_w) * u
                     - m_total / I_c * self.params["l"] * 9.81 * sp.sin(x_1)
-                    - w_0**2 * x_3
+                    - w_0 ** 2 * x_3
                     - 2 * xi * w_0 * x_4
                 ],
             ]
@@ -47,7 +47,7 @@ class NonlinearModel(Model):
         """Linearize the nonlinear model."""
         A = self.model.jacobian(sp.symbols("x_1 x_2 x_3 x_4"))
         B = self.model.jacobian([sp.symbols("u")])
-        C = sp.Matrix([[0, 1, 0, 0], [0, 0, 0, 1]])
+        C = sp.Matrix([[1, 0, 0, 0], [0, 0, 0, 1]])
         D = sp.zeros(2, 1)
 
         params = self.params.copy()

@@ -7,15 +7,16 @@
 namespace estimator
 {
 Estimator::Estimator()
-	: K(4, 2), C(2, 4), A(4, 4), A_cl(4, 4), x_hat(4), z_bar(2), tau(0.1f), ts(0.005f)
+	: K(4, 3), C(3, 4), A(4, 4), A_cl(4, 4), x_hat(4), z_bar(3), tau(0.1f), tau_g(0.01f),
+	  ts(0.005f)
 {
 	// Initialize the Kalman gain matrix
-	K << 0.99746916, -0.00023407, 0.50602609, 0.04681492, 0.09122407, -0.71211508, 0.04561204,
-		0.71644207;
-	A << 0.99998684, 0.00996368, 0.00000002, 0.00000006, -0.00263149, 0.99273541, 0.00000426,
-		0.00001248, 0.0003284, 0.00090659, 0.99533746, 0.00932245, 0.06567939, 0.18131709,
-		-0.93250714, 0.86449043;
-	C << 1., 0.005, 0., 0., 0., 0., -0.46620047, 0.93240093;
+	K << 0.99999929, -0.00499999, 0., 0., 0.99999929, -0., 0.00000017, 0.00000663, -0.71488305,
+		0.00000009, 0.00000332, 0.71505808;
+	A << 0.9999414, 0.00992341, 0.00000007, 0.00000006, -0.01172083, 0.98468214, 0.00001321,
+		0.00001235, 0.0014627, 0.00191159, 0.99533635, 0.00932247, 0.29254043, 0.38231887,
+		-0.93273064, 0.86449367;
+	C << 1., 0.005, 0., 0., 0., 1., 0., 0., 0., 0., -0.46620047, 0.93240093;
 	A_cl = (A - K * C);
 	x_hat.setZero();
 	z_bar.setZero();
@@ -30,18 +31,20 @@ void Estimator::estimateState(const std::array<uint32_t, 8> &measurements)
 	float motor_speed = float((int32_t)measurements[7]) / 1000000.0f;
 
 	// complementary filter
-	float a0 = tau / (tau + ts); // 5 ms sample time
+	float a0 = tau / (tau + ts);
 	float b0 = ts / (tau + ts);
+	float a0_g = tau_g / (tau_g + ts);
+	float b0_g = ts / (tau_g + ts);
 
 	ax = a0 * ax + b0 * ax_new;
 	ay = a0 * ay + b0 * ay_new;
-	gz = a0 * gz + tau * b0 * gz_new;
+	gz = a0_g * gz + b0_g * gz_new;
 
-	float theta = -atan2f(ay, ax) - gz - 3.14f * 3.0f / 4.0f; // calculate angle from
-								  // accelerometer
+	float theta = -atan2f(ay, ax) - 3.14f * 3.0f / 4.0f; // calculate angle from
+							     // accelerometer
 
 	// propagate through Kalman filter
-	z_bar << theta, motor_speed;
+	z_bar << theta, gz, motor_speed;
 	x_hat = A_cl * x_hat + K * z_bar;
 
 	for (int i = 0; i < 4; ++i) {

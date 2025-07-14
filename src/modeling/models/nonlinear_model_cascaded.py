@@ -52,8 +52,8 @@ class NonlinearModel(Model):
         """Linearize the nonlinear model."""
         A = self.model.jacobian(sp.symbols("x_1 x_2 x_3 x_4"))
         B = self.model.jacobian([sp.symbols("u")])
-        C = sp.Matrix([[1, 0, 0, 0], [0, 0, 0, 1]])
-        D = sp.zeros(2, 1)
+        C = sp.Matrix([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+        D = sp.zeros(3, 1)
 
         params = self.params.copy()
         params.setdefault(

@@ -33,9 +33,9 @@ class Estimator
       private:
 	MatrixXf K, C, A, A_cl;
 	VectorXf x_hat;
-	Vector2f z_bar;
+	VectorXf z_bar;
 	float ax{-9.81f * 0.707f}, ay{-9.81f * 0.707f}, gz{0.0f};
-	float tau, ts;
+	float tau, tau_g, ts;
 };
 
 } // namespace estimator

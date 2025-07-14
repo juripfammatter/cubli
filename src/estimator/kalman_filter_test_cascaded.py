@@ -56,7 +56,7 @@ def main():
     )
     linear_model.discretize(ts=ts_control)
 
-    Q = np.diag([100, 1, 1, 1])  # State cost matrix
+    Q = np.diag([500, 1, 1, 1])  # State cost matrix
     R = np.array([[1]])  # Input cost matrix
     F, S, E = control.dlqr(linear_model.ss_discrete, Q, R)
 
@@ -74,7 +74,7 @@ def main():
 
     """ Estimator """
     Q_lqe = np.diag([1, 1, 1, 1])  # TODO replace with actual covariance matrix
-    R_lqe = 7.14025e-7 * np.diag([1, 1])
+    R_lqe = 7.14025e-7 * np.diag([1, 1, 1])
 
     A, H = closed_loop_ss.A, closed_loop_ss.C
     P, _, _ = control.dare(A.T, H.T, Q_lqe, R_lqe)
@@ -108,14 +108,17 @@ def main():
     ay = -9.81 * 0.707
     gz = 0
     tau = 0.1
+    tau_g = 0.01
 
     a0 = tau / (tau + ts_est)
     b0 = ts_est / (tau + ts_est)
+    a0g = tau_g / (tau_g + ts_est)
+    b0g = ts_est / (tau_g + ts_est)
     for i in range(1, n_est):
         ax = a0 * ax + b0 * measurements_df["imu"][i * divider][0]  # low pass
         ay = a0 * ay + b0 * measurements_df["imu"][i * divider][1]  # low pass
-        gz = a0 * gz + tau * b0 * measurements_df["imu"][i * divider][5]  # high pass
-        theta_b = -np.atan2(ay, ax) - gz - np.pi * 3 / 4
+        gz = a0g * gz + b0g * measurements_df["imu"][i * divider][5]  # high pass
+        theta_b = -np.atan2(ay, ax) - np.pi * 3 / 4
 
         filtered_measurements["imu"][i * divider][0] = ax
         filtered_measurements["imu"][i * divider][1] = ay
@@ -126,7 +129,7 @@ def main():
             np.hstack(
                 [
                     theta_b,
-                    # measurements_df["imu"][i * divider][5],
+                    gz,
                     measurements_df["imu"][i * divider][6],
                 ]
             )

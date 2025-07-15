@@ -75,7 +75,12 @@ def main():
     for i in range(1, n_est):
         time.append(measurements_df["time"][i * divider])
         x_hat[:, i] = linear_model.ss_discrete.A @ x_hat[:, i - 1] + K_lqe @ (
-            np.hstack([measurements_df["imu"][i * divider][5], 0])
+            np.hstack(
+                [
+                    measurements_df["imu"][i * divider][5],
+                    measurements_df["imu"][i * divider][6],
+                ]
+            )
             - linear_model.ss_discrete.C @ x_hat[:, i - 1]
         )
 

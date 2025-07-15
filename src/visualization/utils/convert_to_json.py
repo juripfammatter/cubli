@@ -20,11 +20,36 @@ def convert_to_json(file_path: str) -> str:
         time_match = re.search(r"time: \[([0-9\.\-eE]+)\]", line)
         imu_match = re.search(r"imu: \[([0-9\.\,\-\seE]+)\]", line)
         state_match = re.search(r"state: \[([0-9\.\,\-\seE]+)\]", line)
-        if time_match and imu_match and state_match:
+        reference_match = re.search(r"reference: \[([0-9\.\,\-\seE]+)\]", line)
+        input_match = re.search(r"input: \[([0-9\.\,\-\seE]+)\]", line)
+        if time_match and imu_match:
             time_val = float(time_match.group(1))
             imu_vals = [float(x) for x in imu_match.group(1).split(",")]
-            state_vals = [float(x) for x in state_match.group(1).split(",")]
-            result.append({"time": time_val, "imu": imu_vals, "state": state_vals})
+
+            state_vals = (
+                [float(x) for x in state_match.group(1).split(",")]
+                if state_match
+                else []
+            )
+            reference_vals = (
+                [float(x) for x in reference_match.group(1).split(",")]
+                if reference_match
+                else []
+            )
+            input_vals = (
+                [float(x) for x in input_match.group(1).split(",")]
+                if input_match
+                else []
+            )
+            result.append(
+                {
+                    "time": time_val,
+                    "imu": imu_vals,
+                    "state": state_vals,
+                    "reference": reference_vals,
+                    "input": input_vals,
+                }
+            )
 
     # save as json
     json_file_path = file_path.replace(".txt", ".json")
